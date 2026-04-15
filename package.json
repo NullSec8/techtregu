@@ -1,0 +1,20 @@
+{
+  "name": "techtregu",
+  "version": "1.0.0",
+  "description": "Tech marketplace for computers and devices",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+    "start": "npm run start --prefix server",
+    "build": "npm run build --prefix client",
+    "install-client": "npm install --prefix client",
+    "install-server": "npm install --prefix server",
+    "install-all": "npm run install-client && npm run install-server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["marketplace", "tech", "react", "nodejs", "mongodb"],
+  "author": "",
+  "license": "ISC"
+}
