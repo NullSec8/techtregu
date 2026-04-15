@@ -1,15 +1,11 @@
 /**
- * Seed demo user + listings. Run when MongoDB is available:
+ * Seed demo user + listings (MySQL). Run:
  *   npm run seed --prefix server
- * Skips if there are already active listings.
  */
 require('dotenv').config();
-const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const User = require('./models/User');
-const Listing = require('./models/Listing');
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost/techtregu';
+const mysql = require('mysql2/promise');
+const { ensureDatabase } = require('./database/bootstrap');
 
 const DEMO = {
   username: 'techtregu_demo',
@@ -32,12 +28,7 @@ const LISTINGS = [
     images: [
       'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=800&q=80',
     ],
-    specs: {
-      VRAM: '12 GB GDDR6X',
-      'Boost Clock': '2610 MHz',
-      TDP: '285 W',
-      Condition: 'Like New',
-    },
+    specs: { VRAM: '12 GB GDDR6X', 'Boost Clock': '2610 MHz', TDP: '285 W', Condition: 'Like New' },
   },
   {
     title: 'Ryzen 9 7900X — Unlocked',
@@ -47,14 +38,8 @@ const LISTINGS = [
     category: 'cpu',
     condition: 'used',
     location: 'Prizren, Kosovo',
-    images: [
-      'https://images.unsplash.com/photo-1587825140708-dfaf288ae64b?w=800&q=80',
-    ],
-    specs: {
-      'Cores/Threads': '12/24',
-      'Boost Clock': '5.6 GHz',
-      TDP: '170 W',
-    },
+    images: ['https://images.unsplash.com/photo-1587825140708-dfaf288ae64b?w=800&q=80'],
+    specs: { 'Cores/Threads': '12/24', 'Boost Clock': '5.6 GHz', TDP: '170 W' },
   },
   {
     title: 'Custom Gaming PC — Full Build',
@@ -64,9 +49,7 @@ const LISTINGS = [
     category: 'desktop',
     condition: 'refurbished',
     location: 'Mitrovica, Kosovo',
-    images: [
-      'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&q=80',
-    ],
+    images: ['https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&q=80'],
     specs: {
       CPU: 'Intel i9-12900K',
       GPU: 'RTX 3080 10GB',
@@ -82,14 +65,8 @@ const LISTINGS = [
     category: 'storage',
     condition: 'used',
     location: 'Prishtina, Kosovo',
-    images: [
-      'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=800&q=80',
-    ],
-    specs: {
-      Interface: 'PCIe 4.0 x4',
-      Read: '7450 MB/s',
-      Write: '6900 MB/s',
-    },
+    images: ['https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=800&q=80'],
+    specs: { Interface: 'PCIe 4.0 x4', Read: '7450 MB/s', Write: '6900 MB/s' },
   },
   {
     title: 'Corsair Vengeance DDR5 32 GB',
@@ -98,53 +75,71 @@ const LISTINGS = [
     category: 'ram',
     condition: 'used',
     location: 'Gjakova, Kosovo',
-    images: [
-      'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=800&q=80',
-    ],
-    specs: {
-      Capacity: '2×16 GB',
-      Speed: 'DDR5-5600',
-      Voltage: '1.25V',
-    },
+    images: ['https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=800&q=80'],
+    specs: { Capacity: '2×16 GB', Speed: 'DDR5-5600', Voltage: '1.25V' },
   },
 ];
 
 async function run() {
-  await mongoose.connect(MONGODB_URI);
-  console.log('MongoDB connected for seed');
+  await ensureDatabase();
 
-  const existing = await Listing.countDocuments({ isActive: true });
-  if (existing > 0) {
-    console.log(`Skip seed: ${existing} active listing(s) already exist.`);
-    await mongoose.disconnect();
+  const config = {
+    host: process.env.MYSQL_HOST || 'localhost',
+    port: process.env.MYSQL_PORT ? Number(process.env.MYSQL_PORT) : 3306,
+    user: process.env.MYSQL_USER || 'root',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'techtregu',
+  };
+
+  const pool = mysql.createPool(config);
+  const { initSchema } = require('./database/initSchema');
+  await initSchema();
+
+  const [[{ c }]] = await pool.query('SELECT COUNT(*) AS c FROM listings WHERE is_active = 1');
+  if (c > 0) {
+    console.log(`Skip seed: ${c} active listing(s) already exist.`);
+    await pool.end();
     process.exit(0);
   }
 
-  let user = await User.findOne({ email: DEMO.email });
-  if (!user) {
-    const salt = await bcrypt.genSalt(10);
-    user = new User({
-      ...DEMO,
-      password: await bcrypt.hash(DEMO.password, salt),
-    });
-    await user.save();
-    console.log('Created demo user:', DEMO.email, '/', DEMO.password);
-  } else {
+  const [users] = await pool.query('SELECT id FROM users WHERE email = ?', [DEMO.email]);
+  let userId;
+  if (users.length) {
+    userId = users[0].id;
     console.log('Using existing user:', DEMO.email);
+  } else {
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(DEMO.password, salt);
+    const [result] = await pool.query(
+      `INSERT INTO users (username, email, password, first_name, last_name, location)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [DEMO.username, DEMO.email, hash, DEMO.firstName, DEMO.lastName, DEMO.location]
+    );
+    userId = result.insertId;
+    console.log('Created demo user:', DEMO.email, '/', DEMO.password);
   }
 
   for (const item of LISTINGS) {
-    const listing = new Listing({
-      ...item,
-      seller: user._id,
-      specs: item.specs || {},
-    });
-    await listing.save();
-    console.log('Listed:', listing.title);
+    await pool.query(
+      `INSERT INTO listings (title, description, price, category, \`condition\`, images, location, seller_id, specs)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        item.title,
+        item.description,
+        item.price,
+        item.category,
+        item.condition,
+        JSON.stringify(item.images),
+        item.location,
+        userId,
+        JSON.stringify(item.specs),
+      ]
+    );
+    console.log('Listed:', item.title);
   }
 
   console.log('Seed complete.');
-  await mongoose.disconnect();
+  await pool.end();
   process.exit(0);
 }
 

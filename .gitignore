@@ -11,6 +11,7 @@ node_modules
 **/src/node_modules
 dist
 .vite
+server/uploads
 dist-ssr
 *.local
 

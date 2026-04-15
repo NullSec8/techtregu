@@ -7,6 +7,7 @@
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
     "start": "npm run start --prefix server",
     "build": "npm run build --prefix client",
+    "make-admin": "npm run make-admin --prefix server --",
     "install-client": "npm install --prefix client",
     "install-server": "npm install --prefix server",
     "install-all": "npm run install-client && npm run install-server"

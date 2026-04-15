@@ -31,7 +31,7 @@ A full-stack marketplace for buying and selling computer hardware and tech devic
 
 ### Backend
 - **Node.js** with Express
-- **MongoDB** with Mongoose
+- **MySQL** (mysql2 driver; schema auto-created on startup)
 - **JWT** for authentication
 - **bcryptjs** for password hashing
 - **Socket.io** for real-time features
@@ -51,10 +51,7 @@ techtregu/
 │   ├── package.json
 │   └── vite.config.js
 ├── server/                 # Node.js backend
-│   ├── models/            # MongoDB models
-│   │   ├── User.js
-│   │   ├── Listing.js
-│   │   └── Message.js
+│   ├── database/          # MySQL pool, schema, repositories
 │   ├── routes/            # API routes
 │   │   ├── auth.js
 │   │   ├── users.js
@@ -72,7 +69,7 @@ techtregu/
 
 ### Prerequisites
 - Node.js (v16 or higher)
-- MongoDB (local or MongoDB Atlas)
+- MySQL 8+ (or compatible) with a user that can create databases
 - npm or yarn
 
 ### Installation
@@ -89,21 +86,23 @@ techtregu/
    ```
 
 3. **Set up environment variables**
-   - Update `server/.env` with your values:
+   - Copy `server/.env.example` to `server/.env` and set MySQL + JWT:
    ```env
-   PORT=5000
-   MONGODB_URI=mongodb://localhost/techtregu
+   MYSQL_HOST=localhost
+   MYSQL_PORT=3306
+   MYSQL_USER=root
+   MYSQL_PASSWORD=your_password
+   MYSQL_DATABASE=techtregu
    JWT_SECRET=your_super_secret_jwt_key_here
+   PORT=5000
    CLIENT_URL=http://localhost:5173
-
-   # Optional: For image uploads
-   CLOUDINARY_CLOUD_NAME=your_cloud_name
-   CLOUDINARY_API_KEY=your_api_key
-   CLOUDINARY_API_SECRET=your_api_secret
    ```
+   The server creates the database and tables on startup if they are missing.
 
-4. **Start MongoDB**
-   - Make sure MongoDB is running locally, or update MONGODB_URI for MongoDB Atlas
+4. **Optional: seed demo listings**
+   ```bash
+   npm run seed --prefix server
+   ```
 
 5. **Start the development servers**
    ```bash

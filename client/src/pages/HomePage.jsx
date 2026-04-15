@@ -2,13 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { ProductCard } from '../components/ProductCard';
+import { ProductSkeletonGrid } from '../components/ProductSkeleton';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { DEFAULT_PAGE_TITLE } from '../siteMeta';
 import { FILTER_TO_API, normalizeListing } from '../utils/listingUtils';
 
 export function HomePage() {
+  useDocumentTitle(DEFAULT_PAGE_TITLE);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [listings, setListings] = useState([]);
+  const [recentItems, setRecentItems] = useState([]);
+  const [favoriteIds, setFavoriteIds] = useState(() => {
+    try {
+      const raw = localStorage.getItem('tt_favorites');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,7 +55,7 @@ export function HomePage() {
           setError(
             e.response?.data?.message ||
               e.message ||
-              'Could not load listings. Is the API running and MongoDB connected?'
+              'Could not load listings. Is the API running and MySQL configured?'
           );
           setListings([]);
           setTotal(0);
@@ -57,124 +71,142 @@ export function HomePage() {
     };
   }, [activeCategory, debouncedSearch]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRecent() {
+      try {
+        const raw = localStorage.getItem('tt_recently_viewed');
+        const ids = raw ? JSON.parse(raw) : [];
+        const top = ids.slice(0, 8);
+        if (!top.length) {
+          if (!cancelled) setRecentItems([]);
+          return;
+        }
+        const results = await Promise.all(
+          top.map(async (rid) => {
+            try {
+              const { data } = await api.get(`/listings/${rid}`);
+              return normalizeListing(data);
+            } catch {
+              return null;
+            }
+          })
+        );
+        if (cancelled) return;
+        setRecentItems(results.filter(Boolean));
+      } catch {
+        if (!cancelled) setRecentItems([]);
+      }
+    }
+
+    function refreshOnFocus() {
+      if (document.visibilityState !== 'hidden') {
+        loadRecent();
+      }
+    }
+
+    loadRecent();
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnFocus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+    };
+  }, []);
+
   const handleSearch = (e) => {
     e.preventDefault();
+    setDebouncedSearch(searchTerm.trim());
   };
+
+  const hasActiveFilter = activeCategory !== 'all' || debouncedSearch.length > 0;
+
+  function clearFilters() {
+    setActiveCategory('all');
+    setSearchTerm('');
+  }
+
+  function toggleFavorite(id) {
+    setFavoriteIds((prev) => {
+      const exists = prev.includes(id);
+      const next = exists ? prev.filter((x) => x !== id) : [...prev, id];
+      localStorage.setItem('tt_favorites', JSON.stringify(next));
+      return next;
+    });
+  }
+
+  const displayedListings = [...listings].sort((a, b) => {
+    if (sortBy === 'price-low') return Number(a.price) - Number(b.price);
+    if (sortBy === 'price-high') return Number(b.price) - Number(a.price);
+    if (sortBy === 'popular') return Number(b.views || 0) - Number(a.views || 0);
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  });
 
   return (
     <div className="page-home">
       <section className="hero">
-        <div className="hero-badge">
-          <div className="pulse" />
-          Live marketplace · Kosovo &amp; region
-        </div>
+        <div className="hero-badge">Tech marketplace for Kosovo &amp; region</div>
         <h1>
-          The commercial-grade way to trade <span className="accent">tech hardware</span>
+          Buy and sell <span className="accent">tech hardware</span> with confidence
         </h1>
         <p className="hero-lead">
-          Real listings from the TechTregu API — register, post inventory, and message sellers
-          backed by MongoDB and JWT auth.
+          Clean listings, direct messaging, and trusted seller profiles. Everything you need to
+          trade faster, in one place.
         </p>
         <div className="hero-cta">
-          <Link to="/register" className="btn">
-            Create seller account
+          <Link to="/" className="btn btn-primary">
+            Start browsing
           </Link>
-          <Link to="/new-listing" className="btn btn-primary">
-            Start selling
+          <Link to="/new-listing" className="btn">
+            Sell your item
           </Link>
         </div>
-        <ul className="trust-strip">
-          <li>
-            <span>✓</span> Live REST API
-          </li>
-          <li>
-            <span>✓</span> Secure accounts (JWT)
-          </li>
-          <li>
-            <span>✓</span> Structured specs &amp; pricing
-          </li>
-        </ul>
-      </section>
-
-      <section className="value-strip" aria-label="Why TechTregu">
-        <div className="value-card">
-          <h3>Production data model</h3>
-          <p>Listings, sellers, categories, and conditions map directly to your database schema.</p>
-        </div>
-        <div className="value-card">
-          <h3>Trust by design</h3>
-          <p>Every card shows verified seller usernames from real user accounts.</p>
-        </div>
-        <div className="value-card">
-          <h3>Ready to extend</h3>
-          <p>Messaging routes and Socket.io are available for chat when you connect the UI.</p>
-        </div>
-      </section>
-
-      <section className="how-section" id="how">
-        <div className="section-head">
-          <h2>How it works</h2>
-          <p>Three steps from discovery to a confident purchase.</p>
-        </div>
-        <div className="steps-grid">
-          <div className="step">
-            <div className="step-num">1</div>
-            <h3>Discover</h3>
-            <p>Search and filter by category — queries hit GET /api/listings with real filters.</p>
-          </div>
-          <div className="step">
-            <div className="step-num">2</div>
-            <h3>Compare</h3>
-            <p>Open a listing to see specs, price in EUR, and seller details from the API.</p>
-          </div>
-          <div className="step">
-            <div className="step-num">3</div>
-            <h3>Connect</h3>
-            <p>Email the seller in one tap — wire up /api/messages next for in-app chat.</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="search-section">
-        <div className="search-panel">
-          <form onSubmit={handleSearch} className="search-form">
+        <div className="hero-quick-panel">
+          <form onSubmit={handleSearch} className="hero-quick-search">
             <input
               type="search"
-              placeholder="Search listings — e.g. RTX 4070, Ryzen 9, DDR5…"
+              placeholder="Search laptops, GPUs, PCs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
+              className="hero-quick-input"
               autoComplete="off"
             />
             <button type="submit" className="btn btn-primary">
-              Search
+              Search now
             </button>
           </form>
+          <div className="hero-quick-cats">
+            {[
+              { label: 'All', value: 'all' },
+              { label: 'GPU', value: 'gpu' },
+              { label: 'CPU', value: 'cpu' },
+              { label: 'PC', value: 'pc' },
+              { label: 'RAM', value: 'ram' },
+              { label: 'SSD', value: 'ssd' },
+            ].map((cat) => (
+              <button
+                key={`hero-${cat.value}`}
+                type="button"
+                className={`hero-chip${activeCategory === cat.value ? ' active' : ''}`}
+                onClick={() => setActiveCategory(cat.value)}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </section>
-
-      <section className="cats-section">
-        <p className="section-label">Shop by category</p>
-        <div className="cats-grid">
-          {[
-            { label: 'All', icon: '✦', value: 'all' },
-            { label: 'GPU', icon: '🎮', value: 'gpu' },
-            { label: 'CPU', icon: '⚡', value: 'cpu' },
-            { label: 'PC', icon: '🖥️', value: 'pc' },
-            { label: 'RAM', icon: '💾', value: 'ram' },
-            { label: 'SSD', icon: '💿', value: 'ssd' },
-          ].map((cat) => (
-            <button
-              key={cat.value}
-              type="button"
-              className={`cat-chip${activeCategory === cat.value ? ' active' : ''}`}
-              onClick={() => setActiveCategory(cat.value)}
-            >
-              <span className="cat-icon">{cat.icon}</span>
-              {cat.label}
-            </button>
-          ))}
-        </div>
+        <ul className="trust-strip">
+          <li>
+            <span>✓</span> Verified seller identities
+          </li>
+          <li>
+            <span>✓</span> Secure accounts
+          </li>
+          <li>
+            <span>✓</span> Offer & message flow
+          </li>
+        </ul>
       </section>
 
       <section>
@@ -182,11 +214,24 @@ export function HomePage() {
           <div>
             <h2>Live listings</h2>
             <p className="products-sub">
-              Served from MongoDB via GET /api/listings — create data with POST /api/listings or run{' '}
-              <code className="inline-code">npm run seed --prefix server</code>.
+              Browse the latest hardware deals from trusted local sellers.
             </p>
           </div>
-          <span className="count-badge">{loading ? '…' : `${total} live`}</span>
+          <div className="products-tools">
+            <span className="count-badge">{loading ? '…' : `${total} live`}</span>
+            <span className="count-badge count-favorites">★ {favoriteIds.length} favorites</span>
+            <select
+              className="sort-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              aria-label="Sort listings"
+            >
+              <option value="newest">Newest</option>
+              <option value="popular">Most viewed</option>
+              <option value="price-low">Price: low to high</option>
+              <option value="price-high">Price: high to low</option>
+            </select>
+          </div>
         </div>
 
         {error && (
@@ -196,32 +241,73 @@ export function HomePage() {
         )}
 
         {loading ? (
-          <p className="loading-text">Loading listings…</p>
+          <ProductSkeletonGrid count={8} />
         ) : listings.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">📦</div>
-            <h3>No listings yet</h3>
-            <p>
-              Seed sample data or sign in and create a listing. Ensure MongoDB is running and the
-              server is on port 5000.
-            </p>
-            <p className="empty-actions">
-              <Link to="/register" className="btn btn-primary">
-                Register
-              </Link>
-              <Link to="/new-listing" className="btn">
-                New listing
-              </Link>
-            </p>
-          </div>
+          hasActiveFilter ? (
+            <div className="empty-state">
+              <div className="empty-icon">🔍</div>
+              <h3>No matches</h3>
+              <p>Nothing matched your search or category. Try different keywords or browse all listings.</p>
+              <p className="empty-actions">
+                <button type="button" className="btn btn-primary" onClick={clearFilters}>
+                  Clear filters
+                </button>
+                <Link to="/help" className="btn">
+                  Help
+                </Link>
+              </p>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-icon">📦</div>
+              <h3>No listings yet</h3>
+              <p>
+                Be the first to post a listing and start the marketplace momentum.
+              </p>
+              <p className="empty-actions">
+                <Link to="/register" className="btn btn-primary">
+                  Register
+                </Link>
+                <Link to="/new-listing" className="btn">
+                  New listing
+                </Link>
+              </p>
+            </div>
+          )
         ) : (
           <div className="products-grid">
-            {listings.map((product) => (
-              <ProductCard product={product} key={product.id} />
+            {displayedListings.map((product) => (
+              <ProductCard
+                product={product}
+                key={product.id}
+                isFavorite={favoriteIds.includes(product.id)}
+                onToggleFavorite={toggleFavorite}
+              />
             ))}
           </div>
         )}
       </section>
+
+      {recentItems.length > 0 && (
+        <section className="recently-viewed-section">
+          <div className="products-header">
+            <div>
+              <h2>Recently viewed</h2>
+              <p className="products-sub">Jump back to items you explored earlier.</p>
+            </div>
+          </div>
+          <div className="products-grid">
+            {recentItems.map((item) => (
+              <ProductCard
+                key={`recent-${item.id}`}
+                product={item}
+                isFavorite={favoriteIds.includes(item.id)}
+                onToggleFavorite={toggleFavorite}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -7,22 +7,19 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const loadMe = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    try {
+      const { data } = await api.get('/auth/me');
+      setUser(data);
+    } catch {
+      localStorage.removeItem('token');
       setUser(null);
-      return;
     }
-    const { data } = await api.get('/auth/me');
-    setUser(data);
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
         await loadMe();
-      } catch {
-        localStorage.removeItem('token');
-        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -31,8 +28,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(
     async ({ email, password }) => {
-      const { data } = await api.post('/auth/login', { email, password });
-      localStorage.setItem('token', data.token);
+      await api.post('/auth/login', { email, password });
       await loadMe();
     },
     [loadMe]
@@ -40,14 +36,18 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(
     async (body) => {
-      const { data } = await api.post('/auth/register', body);
-      localStorage.setItem('token', data.token);
+      await api.post('/auth/register', body);
       await loadMe();
     },
     [loadMe]
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // ignore network errors on logout
+    }
     localStorage.removeItem('token');
     setUser(null);
   }, []);

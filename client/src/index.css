@@ -31,15 +31,46 @@
   --font-display: "Outfit", var(--font-sans);
 
   font-family: var(--font-sans);
-  font-size: 17px;
-  line-height: 1.55;
-  letter-spacing: 0.01em;
+  --text-base: 17px;
+  --line-base: 1.58;
+  --tracking-base: 0.005em;
+  --h1-size: clamp(2.2rem, 5vw, 3.3rem);
+  --h2-size: clamp(1.45rem, 3vw, 1.85rem);
+  --h3-size: clamp(1.1rem, 2.4vw, 1.25rem);
+
+  font-size: var(--text-base);
+  line-height: var(--line-base);
+  letter-spacing: var(--tracking-base);
   color: var(--text);
   background: var(--bg-page);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="neon"] {
+  --bg-page: #070a16;
+  --bg-card: #0f1325;
+  --bg-subtle: #121a32;
+  --text: #b8c5e6;
+  --text-heading: #ecf3ff;
+  --text-muted: #86a0d6;
+  --border: #253054;
+  --border-strong: #334471;
+
+  --accent: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --accent-soft: rgba(139, 92, 246, 0.2);
+  --accent-glow: rgba(139, 92, 246, 0.6);
+
+  --teal: #14b8a6;
+  --teal-soft: rgba(20, 184, 166, 0.2);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 4px 18px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
 @media (max-width: 1024px) {
@@ -52,10 +83,34 @@
 *::before,
 *::after {
   box-sizing: border-box;
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: 180ms;
+  transition-timing-function: ease;
 }
 
 body {
   margin: 0;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% -25%, rgba(124, 58, 237, 0.09), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 100% 0%, rgba(13, 148, 136, 0.07), transparent 50%),
+    var(--bg-page);
+}
+
+:root[data-theme="neon"] body {
+  background:
+    radial-gradient(ellipse 85% 50% at 50% -20%, rgba(139, 92, 246, 0.2), transparent 58%),
+    radial-gradient(ellipse 55% 45% at 100% 0%, rgba(20, 184, 166, 0.16), transparent 52%),
+    linear-gradient(180deg, #060913 0%, #0a1022 100%);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 #root {
@@ -70,6 +125,22 @@ h3 {
   font-family: var(--font-display);
   color: var(--text-heading);
   font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: var(--h1-size);
+  line-height: 1.08;
+}
+
+h2 {
+  font-size: var(--h2-size);
+  line-height: 1.18;
+}
+
+h3 {
+  font-size: var(--h3-size);
+  line-height: 1.25;
 }
 
 p {

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { pageTitle } from '../siteMeta';
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
+  useDocumentTitle(pageTitle('Create account'));
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -84,7 +87,7 @@ export function RegisterPage() {
               value={form.password}
               onChange={setField('password')}
               required
-              minLength={6}
+              minLength={8}
             />
           </label>
           <div className="form-row">
@@ -105,6 +108,10 @@ export function RegisterPage() {
         </form>
         <p className="auth-footer">
           Already have an account? <Link to="/login">Sign in</Link>
+        </p>
+        <p className="auth-legal">
+          By registering you agree to our <Link to="/terms">Terms</Link> and{' '}
+          <Link to="/privacy">Privacy policy</Link>.
         </p>
       </div>
     </div>

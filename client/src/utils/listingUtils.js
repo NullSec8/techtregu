@@ -58,6 +58,9 @@ export function normalizeListing(raw) {
         : { ...raw.specs }
       : {};
 
+  const rawId = raw._id ?? raw.id;
+  const id = rawId != null ? rawId : null;
+
   const seller = raw.seller
     ? {
         ...raw.seller,
@@ -70,7 +73,8 @@ export function normalizeListing(raw) {
 
   return {
     ...raw,
-    id: raw._id,
+    id,
+    _id: id != null ? String(id) : undefined,
     specs,
     seller,
   };

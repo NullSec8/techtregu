@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { pageTitle } from '../siteMeta';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+  useDocumentTitle(pageTitle('Sign in'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -16,7 +20,8 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       await login({ email, password });
-      navigate('/');
+      const to = location.state?.from?.pathname || '/';
+      navigate(to, { replace: true });
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -33,7 +38,11 @@ export function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Sign in</h1>
-        <p className="auth-lead">Use your TechTregu account — backed by JWT from /api/auth/login.</p>
+        <p className="auth-lead">
+          {location.state?.from
+            ? 'Sign in to continue — you will return to the page you tried to open.'
+            : 'Use your TechTregu account — JWT session from /api/auth/login.'}
+        </p>
         <form onSubmit={onSubmit} className="auth-form">
           {error ? (
             <div className="form-error" role="alert">
