@@ -10,7 +10,8 @@ const MSG_SELECT = `
   l.title AS listing_title, l.images AS listing_images
 `;
 
-async function findForUser(userId) {
+async function findForUser(userId, limit = 100) {
+  const lim = Math.min(Math.max(Number(limit) || 100, 1), 200);
   const [rows] = await pool.query(
     `SELECT ${MSG_SELECT}
      FROM messages m
@@ -18,8 +19,9 @@ async function findForUser(userId) {
      INNER JOIN users ru ON ru.id = m.receiver_id
      LEFT JOIN listings l ON l.id = m.listing_id
      WHERE m.sender_id = ? OR m.receiver_id = ?
-     ORDER BY m.created_at DESC`,
-    [userId, userId]
+     ORDER BY m.created_at DESC
+     LIMIT ?`,
+    [userId, userId, lim]
   );
   return rows.map(mapMessage);
 }
@@ -74,7 +76,7 @@ async function countUnreadForUser(userId) {
     'SELECT COUNT(*) AS c FROM messages WHERE receiver_id = ? AND is_read = 0',
     [userId]
   );
-  return Number(rows[0].c) || 0;
+  return Number(rows[0].c || 0) || 0;
 }
 
 async function markConversationRead(receiverId, senderId) {
@@ -82,6 +84,66 @@ async function markConversationRead(receiverId, senderId) {
     `UPDATE messages SET is_read = 1 WHERE receiver_id = ? AND sender_id = ? AND is_read = 0`,
     [receiverId, senderId]
   );
+}
+
+async function getBlockRelationship(a, b) {
+  const [rows] = await pool.query(
+    `SELECT blocker_id, blocked_id
+     FROM user_blocks
+     WHERE (blocker_id = ? AND blocked_id = ?)
+        OR (blocker_id = ? AND blocked_id = ?)`,
+    [a, b, b, a]
+  );
+  let blockedByMe = false;
+  let blockedMe = false;
+  for (const row of rows) {
+    if (Number(row.blocker_id) === Number(a) && Number(row.blocked_id) === Number(b)) blockedByMe = true;
+    if (Number(row.blocker_id) === Number(b) && Number(row.blocked_id) === Number(a)) blockedMe = true;
+  }
+  return { blockedByMe, blockedMe };
+}
+
+async function listBlockedUsers(userId) {
+  const [rows] = await pool.query(
+    `SELECT ub.blocked_id, u.username, u.first_name, u.last_name, ub.created_at
+     FROM user_blocks ub
+     INNER JOIN users u ON u.id = ub.blocked_id
+     WHERE ub.blocker_id = ?
+     ORDER BY ub.created_at DESC`,
+    [userId]
+  );
+  return rows.map((r) => ({
+    id: r.blocked_id,
+    username: r.username,
+    firstName: r.first_name,
+    lastName: r.last_name,
+    blockedAt: r.created_at,
+  }));
+}
+
+async function blockUser(blockerId, blockedId) {
+  await pool.query(
+    `INSERT INTO user_blocks (blocker_id, blocked_id)
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE created_at = created_at`,
+    [blockerId, blockedId]
+  );
+}
+
+async function unblockUser(blockerId, blockedId) {
+  const [r] = await pool.query(
+    'DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?',
+    [blockerId, blockedId]
+  );
+  return r.affectedRows > 0;
+}
+
+async function deleteConversation(a, b) {
+  const [r] = await pool.query(
+    `DELETE FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)`,
+    [a, b, b, a]
+  );
+  return r.affectedRows > 0;
 }
 
 module.exports = {
@@ -92,4 +154,9 @@ module.exports = {
   markRead,
   countUnreadForUser,
   markConversationRead,
+  getBlockRelationship,
+  listBlockedUsers,
+  blockUser,
+  unblockUser,
+  deleteConversation,
 };

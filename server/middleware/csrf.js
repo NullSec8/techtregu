@@ -4,7 +4,7 @@ const CSRF_COOKIE = 'XSRF-TOKEN';
 const CSRF_HEADERS = ['x-xsrf-token', 'x-csrf-token'];
 
 /** POST bodies that must work before any GET (no CSRF cookie yet). */
-const CSRF_EXEMPT_PATHS = new Set(['/api/auth/login', '/api/auth/register']);
+const CSRF_EXEMPT_PATHS = new Set(['/api/auth/login']);
 
 function pathKey(req) {
   return req.originalUrl.split('?')[0];

@@ -13,6 +13,10 @@ export function HomePage() {
   const [sortBy, setSortBy] = useState('newest');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState('');
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState('');
   const [listings, setListings] = useState([]);
   const [recentItems, setRecentItems] = useState([]);
   const [favoriteIds, setFavoriteIds] = useState(() => {
@@ -33,6 +37,16 @@ export function HomePage() {
   }, [searchTerm]);
 
   useEffect(() => {
+    const t = setTimeout(() => setDebouncedMinPrice(minPrice.trim()), 350);
+    return () => clearTimeout(t);
+  }, [minPrice]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedMaxPrice(maxPrice.trim()), 350);
+    return () => clearTimeout(t);
+  }, [maxPrice]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function load() {
@@ -43,6 +57,8 @@ export function HomePage() {
         const apiCat = FILTER_TO_API[activeCategory];
         if (apiCat) params.set('category', apiCat);
         if (debouncedSearch) params.set('search', debouncedSearch);
+        if (debouncedMinPrice) params.set('minPrice', debouncedMinPrice);
+        if (debouncedMaxPrice) params.set('maxPrice', debouncedMaxPrice);
         params.set('limit', '48');
 
         const { data } = await api.get(`/listings?${params.toString()}`);
@@ -69,7 +85,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [activeCategory, debouncedSearch]);
+  }, [activeCategory, debouncedSearch, debouncedMinPrice, debouncedMaxPrice]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +98,7 @@ export function HomePage() {
           if (!cancelled) setRecentItems([]);
           return;
         }
-        const results = await Promise.all(
+        const results = await Promise.allSettled(
           top.map(async (rid) => {
             try {
               const { data } = await api.get(`/listings/${rid}`);
@@ -91,7 +107,7 @@ export function HomePage() {
               return null;
             }
           })
-        );
+        ).then((results) => results.map((r) => r.value).filter(Boolean));
         if (cancelled) return;
         setRecentItems(results.filter(Boolean));
       } catch {
@@ -120,11 +136,16 @@ export function HomePage() {
     setDebouncedSearch(searchTerm.trim());
   };
 
-  const hasActiveFilter = activeCategory !== 'all' || debouncedSearch.length > 0;
+  const hasActiveFilter = activeCategory !== 'all' || debouncedSearch.length > 0 || debouncedMinPrice || debouncedMaxPrice;
 
   function clearFilters() {
     setActiveCategory('all');
     setSearchTerm('');
+    setDebouncedSearch('');
+    setMinPrice('');
+    setMaxPrice('');
+    setDebouncedMinPrice('');
+    setDebouncedMaxPrice('');
   }
 
   function toggleFavorite(id) {
@@ -219,6 +240,25 @@ export function HomePage() {
           </div>
           <div className="products-tools">
             <span className="count-badge">{loading ? '…' : `${total} live`}</span>
+            <span className="price-filter">
+              <input
+                type="number"
+                placeholder="Min €"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="price-input"
+                min="0"
+              />
+              <span>-</span>
+              <input
+                type="number"
+                placeholder="Max €"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="price-input"
+                min="0"
+              />
+            </span>
             <span className="count-badge count-favorites">★ {favoriteIds.length} favorites</span>
             <select
               className="sort-select"

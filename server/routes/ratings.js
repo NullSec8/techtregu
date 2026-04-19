@@ -32,10 +32,10 @@ router.post(
   '/',
   auth,
   [
-    body('sellerId').isInt(),
+    body('sellerId').isInt({ min: 1 }),
     body('rating').isInt({ min: 1, max: 5 }),
     body('comment').optional().isLength({ max: 1000 }).trim(),
-    body('listingId').optional().isInt(),
+    body('listingId').optional().isInt({ min: 1 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -44,7 +44,8 @@ router.post(
     }
     try {
       const sellerId = Number(req.body.sellerId);
-      if (sellerId === Number(req.user.id)) {
+      const myId = Number(req.user.id);
+      if (sellerId === myId) {
         return res.status(400).json({ message: 'You cannot rate yourself' });
       }
       const seller = await userRepository.findById(sellerId);

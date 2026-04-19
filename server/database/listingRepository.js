@@ -43,8 +43,9 @@ async function findMany(filters) {
   }
 
   if (search) {
+    const escaped = search.replace(/[%_]/g, '\\$&');
     where.push('(l.title LIKE ? OR l.description LIKE ?)');
-    const q = `%${search}%`;
+    const q = `%${escaped}%`;
     params.push(q, q);
   }
 
@@ -69,14 +70,15 @@ async function findMany(filters) {
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const lim = Math.min(Math.max(Number(limit) || 12, 1), 100);
-  const pg = Math.max(Number(page) || 1, 1);
+  const maxPage = 10000;
+  const pg = Math.min(Math.max(Number(page) || 1, 1), maxPage);
   const offset = (pg - 1) * lim;
 
   const [countRows] = await pool.query(
     `SELECT COUNT(*) AS c FROM listings l ${whereSql}`,
     params
   );
-  const total = countRows[0].c;
+  const total = Number(countRows[0].c || 0);
 
   const [rows] = await pool.query(
     `SELECT ${SELLER_JOIN}
@@ -166,10 +168,12 @@ async function update(id, sellerId, patch, options = {}) {
   }
   if (!fields.length) return findById(id);
 
+  if (!isAdmin) {
+    vals.push(sellerId);
+  }
   vals.push(id);
   let sql = `UPDATE listings SET ${fields.join(', ')} WHERE id = ?`;
   if (!isAdmin) {
-    vals.push(sellerId);
     sql += ' AND seller_id = ?';
   }
   await pool.query(sql, vals);
@@ -225,11 +229,12 @@ async function findAllForAdmin({ page = 1, limit = 50, sellerId, active }) {
   }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const lim = Math.min(Math.max(Number(limit) || 50, 1), 200);
-  const pg = Math.max(Number(page) || 1, 1);
+  const maxPage = 1000;
+  const pg = Math.min(Math.max(Number(page) || 1, 1), maxPage);
   const offset = (pg - 1) * lim;
 
   const [countRows] = await pool.query(`SELECT COUNT(*) AS c FROM listings l ${whereSql}`, params);
-  const total = countRows[0].c;
+  const total = Number(countRows[0].c || 0);
 
   const [rows] = await pool.query(
     `SELECT ${SELLER_JOIN}

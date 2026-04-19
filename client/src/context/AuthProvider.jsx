@@ -11,7 +11,6 @@ export function AuthProvider({ children }) {
       const { data } = await api.get('/auth/me');
       setUser(data);
     } catch {
-      localStorage.removeItem('token');
       setUser(null);
     }
   }, []);
@@ -48,7 +47,6 @@ export function AuthProvider({ children }) {
     } catch {
       // ignore network errors on logout
     }
-    localStorage.removeItem('token');
     setUser(null);
   }, []);
 

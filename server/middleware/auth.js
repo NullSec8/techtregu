@@ -13,7 +13,7 @@ const auth = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const u = decoded.user || decoded;
     const id = Number(u.id);
     if (Number.isNaN(id)) {

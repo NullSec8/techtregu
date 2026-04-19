@@ -15,6 +15,14 @@ async function findByEmail(email) {
   return rows[0] || null;
 }
 
+async function findByUsername(username) {
+  const [rows] = await pool.query(
+    'SELECT id, username, email, password, first_name, last_name, phone, location, avatar, is_admin, is_verified, created_at, last_login FROM users WHERE username = ?',
+    [username]
+  );
+  return rows[0] || null;
+}
+
 async function existsByUsernameOrEmail(username, email) {
   const [rows] = await pool.query(
     'SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1',
@@ -64,11 +72,33 @@ async function updateProfile(id, { firstName, lastName, phone, location, avatar 
   await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, vals);
 }
 
+async function setPasswordReset(id, token, expires) {
+  await pool.query(
+    'UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?',
+    [token, expires, id]
+  );
+}
+
+async function clearPasswordReset(id) {
+  await pool.query(
+    'UPDATE users SET reset_token = NULL, reset_expires = NULL WHERE id = ?',
+    [id]
+  );
+}
+
+async function updatePassword(id, password) {
+  await pool.query('UPDATE users SET password = ? WHERE id = ?', [password, id]);
+}
+
 module.exports = {
   findById,
   findByEmail,
+  findByUsername,
   existsByUsernameOrEmail,
   create,
   updateLastLogin,
   updateProfile,
+  setPasswordReset,
+  clearPasswordReset,
+  updatePassword,
 };

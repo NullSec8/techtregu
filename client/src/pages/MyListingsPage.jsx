@@ -40,6 +40,15 @@ export function MyListingsPage() {
     }
   }
 
+  async function markSold(item) {
+    try {
+      await api.put(`/listings/${item.id}`, { isActive: false, isSold: true });
+      await load();
+    } catch (e) {
+      setError(e.response?.data?.message || e.message || 'Failed to mark as sold');
+    }
+  }
+
   async function remove(item) {
     const ok = window.confirm(`Delete "${item.title}"?`);
     if (!ok) return;
@@ -89,25 +98,30 @@ export function MyListingsPage() {
                     {displayCategory(item.category)} • €{Number(item.price).toLocaleString()}
                   </p>
                 </div>
-                <span className={`listing-status ${item.isActive ? 'is-active' : 'is-paused'}`}>
-                  {item.isActive ? 'Active' : 'Paused'}
+                <span className={`listing-status ${item.isSold ? 'is-sold' : item.isActive ? 'is-active' : 'is-paused'}`}>
+                  {item.isSold ? 'Sold' : item.isActive ? 'Active' : 'Paused'}
                 </span>
               </div>
               <p className="my-listing-meta">
                 {item.views || 0} views · {item.location}
               </p>
-              <div className="my-listing-actions">
+              <div className="btn-group btn-group-sm">
                 <Link to={`/products/${item.id}`} className="btn">
                   View
                 </Link>
                 <Link to={`/products/${item.id}?edit=1`} className="btn">
                   Edit
                 </Link>
-                <button type="button" className="btn" onClick={() => toggleActive(item)}>
-                  {item.isActive ? 'Pause' : 'Unpause'}
+                {(!item.isSold) && (
+                  <button type="button" className="btn btn-sm" onClick={() => markSold(item)}>
+                    ✓ Sold
+                  </button>
+                )}
+                <button type="button" className="btn btn-sm" onClick={() => toggleActive(item)}>
+                  {item.isActive ? '⏸' : '▶'}
                 </button>
-                <button type="button" className="btn btn-danger" onClick={() => remove(item)}>
-                  Delete
+                <button type="button" className="btn btn-sm btn-danger-ghost" onClick={() => remove(item)}>
+                  🗑
                 </button>
               </div>
             </article>

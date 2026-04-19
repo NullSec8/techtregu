@@ -40,6 +40,8 @@ export function ProductDetailPage() {
   const [offerNote, setOfferNote] = useState('');
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [similarListings, setSimilarListings] = useState([]);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const [sellerRating, setSellerRating] = useState({ averageRating: null, totalReviews: 0, latestReviews: [] });
   const [ratingOpen, setRatingOpen] = useState(false);
   const [ratingValue, setRatingValue] = useState('5');
@@ -82,17 +84,19 @@ export function ProductDetailPage() {
           images: Array.isArray(normalized.images) ? [...normalized.images] : [],
           specState: initSpecStateForCategory(normalized.category || 'other', normalized.specs || {}),
         });
+
         try {
           const rawRecent = localStorage.getItem('tt_recently_viewed');
           const parsed = rawRecent ? JSON.parse(rawRecent) : [];
           const next = [String(id), ...parsed.filter((x) => String(x) !== String(id))].slice(0, 20);
           localStorage.setItem('tt_recently_viewed', JSON.stringify(next));
+        } catch {}
+
+        try {
           const rawWatchlist = localStorage.getItem('tt_favorites');
           const parsedWatchlist = rawWatchlist ? JSON.parse(rawWatchlist) : [];
           setIsWatchlisted(parsedWatchlist.includes(normalized.id));
-        } catch {
-          // Ignore localStorage parsing errors.
-        }
+        } catch {}
       } catch (e) {
         if (!cancelled) {
           setError(e.response?.status === 404 ? 'Listing not found.' : (e.message || 'Failed to load.'));
@@ -380,11 +384,25 @@ export function ProductDetailPage() {
       <div className="detail-grid">
         <div className="detail-img">
           {product.images && product.images.length > 0 ? (
-            <img
-              src={product.images[0]}
-              alt={product.title}
-              decoding="async"
-            />
+            <>
+              <div className="detail-img-main" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
+                <img src={product.images[0]} alt={product.title} decoding="async" />
+              </div>
+              {product.images.length > 1 && (
+                <div className="detail-img-thumbnails">
+                  {product.images.slice(1, 5).map((img, i) => (
+                    <div key={i} className="detail-img-thumb" onClick={() => { setLightboxIndex(i + 1); setLightboxOpen(true); }}>
+                      <img src={img} alt={`${product.title} ${i + 2}`} />
+                    </div>
+                  ))}
+                  {product.images.length > 5 && (
+                    <div className="detail-img-more" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
+                      +{product.images.length - 5} more
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <div className="img-placeholder">{categoryEmoji(product.category)}</div>
           )}
@@ -420,25 +438,25 @@ export function ProductDetailPage() {
                 <div className="seller-label">{sellerName}</div>
               </div>
             </div>
-            <div className="seller-actions">
+            <div className="btn-group">
               {seller?.id != null && (
-                <Link to={`/profile/${seller.id}`} className="btn">
+                <Link to={`/profile/${encodeURIComponent(seller.username || seller.id)}`} className="btn">
                   View profile
                 </Link>
               )}
-              {user && seller?.id && Number(user.id) !== Number(seller.id) ? (
-                <Link to={`/messages?user=${seller.id}&listing=${product.id}`} className="btn btn-contact">
+              {user?.id && seller?.id && Number(user.id) !== Number(seller.id) ? (
+                <Link to={`/messages?user=${seller.id}&listing=${product.id}`} className="btn btn-primary">
                   Message seller
                 </Link>
               ) : (
-                <button type="button" className="btn btn-contact" onClick={handleContactSeller}>
+                <button type="button" className="btn btn-primary" onClick={handleContactSeller}>
                   Email seller
                 </button>
               )}
               {!canManage ? (
                 <>
                   <button type="button" className="btn" onClick={toggleWatchlist}>
-                    {isWatchlisted ? 'Watchlisted' : 'Add to Watchlist'}
+                    {isWatchlisted ? '★ Watchlisted' : '☆ Watchlist'}
                   </button>
                   {user && seller?.id ? (
                     <>
@@ -464,9 +482,9 @@ export function ProductDetailPage() {
             </div>
             <p className="seller-rating-placeholder">
               Seller rating:{' '}
-              {sellerRating.averageRating == null
+              {(!sellerRating || sellerRating.averageRating == null)
                 ? 'No ratings yet'
-                : `${stars(sellerRating.averageRating)} ${sellerRating.averageRating.toFixed(1)} (${sellerRating.totalReviews})`}
+                : `${stars(sellerRating.averageRating)} ${sellerRating.averageRating?.toFixed(1)} (${sellerRating.totalReviews || 0})`}
             </p>
             {user && !canManage ? (
               <button type="button" className="btn" onClick={() => setRatingOpen((v) => !v)}>
@@ -735,6 +753,36 @@ export function ProductDetailPage() {
             ))}
           </div>
         </section>
+      )}
+
+      {lightboxOpen && (
+        <div className="lightbox" onClick={() => setLightboxOpen(false)}>
+          <button type="button" className="lightbox-close" onClick={() => setLightboxOpen(false)}>
+            ×
+          </button>
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <img src={product.images[lightboxIndex]} alt={product.title} />
+            {product.images.length > 1 && (
+              <div className="lightbox-nav">
+                <button
+                  type="button"
+                  className="lightbox-prev"
+                  onClick={() => setLightboxIndex((lightboxIndex - 1 + product.images.length) % product.images.length)}
+                >
+                  ‹
+                </button>
+                <span className="lightbox-counter">{lightboxIndex + 1} / {product.images.length}</span>
+                <button
+                  type="button"
+                  className="lightbox-next"
+                  onClick={() => setLightboxIndex((lightboxIndex + 1) % product.images.length)}
+                >
+                  ›
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

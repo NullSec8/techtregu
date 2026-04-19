@@ -6,6 +6,18 @@ import { useAuth } from '../hooks/useAuth';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { pageTitle } from '../siteMeta';
 
+function formatTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  if (diff < 60000) return 'now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)}d`;
+  return d.toLocaleDateString();
+}
+
 function buildConversations(messages, meId) {
   const map = new Map();
   for (const msg of messages) {
@@ -35,6 +47,7 @@ export function MessagesPage() {
   const [listingId, setListingId] = useState(searchParams.get('listing') || '');
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const otherIdRef = useRef(otherId);
   otherIdRef.current = otherId;
@@ -85,7 +98,10 @@ export function MessagesPage() {
       withCredentials: true,
       transports: ['websocket', 'polling'],
     });
-    socket.emit('join', user.id);
+    function joinOwnRoom() {
+      socket.emit('join', user.id);
+    }
+    socket.on('connect', joinOwnRoom);
     async function onNewMessage() {
       try {
         const { data } = await api.get('/messages');
@@ -102,8 +118,28 @@ export function MessagesPage() {
     }
     socket.on('message:new', onNewMessage);
     return () => {
+      socket.off('connect', joinOwnRoom);
+      socket.off('message:new', onNewMessage);
       socket.disconnect();
     };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await api.get('/messages');
+        setMessages(data || []);
+        const oid = otherIdRef.current;
+        if (oid) {
+          const { data: thr } = await api.get(`/messages/conversation/${oid}`);
+          setThread(thr || []);
+        }
+      } catch {
+        // ignore transient polling errors
+      }
+    }, 5000);
+    return () => clearInterval(interval);
   }, [user?.id]);
 
   const conversations = useMemo(
@@ -113,7 +149,9 @@ export function MessagesPage() {
 
   async function send(e) {
     e.preventDefault();
-    if (!otherId || !draft.trim()) return;
+    if (!otherId || !draft.trim() || sending) return;
+    setSending(true);
+    setError('');
     try {
       await api.post('/messages', {
         receiver: Number(otherId),
@@ -125,6 +163,8 @@ export function MessagesPage() {
       window.dispatchEvent(new Event('tt-messages-refresh'));
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to send message');
+    } finally {
+      setSending(false);
     }
   }
 
@@ -137,22 +177,31 @@ export function MessagesPage() {
         <aside className="messages-list">
           <h3>Conversations</h3>
           {loading ? (
-            <p className="products-sub">Loading…</p>
+            <div className="empty-state">
+              <p className="products-sub">Loading…</p>
+            </div>
           ) : conversations.length === 0 ? (
-            <p className="products-sub">No conversations yet.</p>
+            <div className="empty-state">
+              <div className="empty-icon">💬</div>
+              <p>No conversations yet.</p>
+              <p className="products-sub">Start a chat from a listing page.</p>
+            </div>
           ) : (
             conversations.map((conv) => (
               <button
                 key={conv.user.id}
                 type="button"
-                className={`conversation-btn${String(otherId) === String(conv.user.id) ? ' active' : ''}`}
+                className={`conversation-item${String(otherId) === String(conv.user.id) ? ' active' : ''}`}
                 onClick={() => {
                   setOtherId(String(conv.user.id));
                   setListingId(conv.lastMessage?.listing?.id ? String(conv.lastMessage.listing.id) : '');
                 }}
               >
-                <strong>@{conv.user.username}</strong>
-                <span>{conv.lastMessage.content.slice(0, 48)}</span>
+                <span className="conversation-name">@{conv.user.username}</span>
+                <span className="conversation-preview">
+                  {conv.lastMessage.content?.slice(0, 40) || 'No messages yet'}
+                </span>
+                <span className="conversation-date">{formatTime(conv.createdAtMs)}</span>
               </button>
             ))
           )}
@@ -197,21 +246,17 @@ export function MessagesPage() {
                   })
                 )}
               </div>
-              <form className="message-compose" onSubmit={send}>
+<form className="message-compose" onSubmit={send}>
                 <textarea
-                  rows={3}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder="Write a message..."
-                  required
+                  rows={2}
+                  disabled={sending}
                 />
-                <div className="form-row">
-                  <label className="form-field">
-                    <span>Listing ID (optional)</span>
-                    <input value={listingId} onChange={(e) => setListingId(e.target.value)} />
-                  </label>
-                  <button type="submit" className="btn btn-primary">
-                    Send
+                <div className="message-compose-actions">
+                  <button type="submit" className="btn btn-primary" disabled={sending || !draft.trim()}>
+                    {sending ? 'Sending...' : 'Send message'}
                   </button>
                 </div>
               </form>

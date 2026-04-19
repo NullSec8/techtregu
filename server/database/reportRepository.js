@@ -52,9 +52,18 @@ async function resolve(id, adminId) {
   return r.affectedRows > 0;
 }
 
+async function findDuplicate(listingId, reporterId) {
+  const [rows] = await pool.query(
+    `SELECT id FROM listing_reports WHERE listing_id = ? AND reporter_id = ? AND status = 'open'`,
+    [listingId, reporterId]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   create,
   findById,
   listOpen,
   resolve,
+  findDuplicate,
 };

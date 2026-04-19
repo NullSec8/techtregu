@@ -17,7 +17,7 @@ function requireAdmin(req, res, next) {
 router.post(
   '/',
   auth,
-  [body('listingId').isInt(), body('reason').isLength({ min: 8, max: 1200 }).trim()],
+  [body('listingId').isInt({ min: 1 }), body('reason').isLength({ min: 8, max: 1200 }).trim()],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -28,6 +28,16 @@ router.post(
       const listing = await listingRepository.findByIdRaw(listingId);
       if (!listing) {
         return res.status(404).json({ message: 'Listing not found' });
+      }
+      if (listing.seller_id === req.user.id) {
+        return res.status(400).json({ message: 'You cannot report your own listing' });
+      }
+      if (!listing.is_active) {
+        return res.status(400).json({ message: 'This listing is no longer active' });
+      }
+      const existing = await reportRepository.findDuplicate(listingId, req.user.id);
+      if (existing) {
+        return res.status(400).json({ message: 'You have already reported this listing' });
       }
       const report = await reportRepository.create({
         listingId,

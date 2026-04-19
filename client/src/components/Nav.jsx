@@ -1,8 +1,10 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
+import { profilePath } from '../utils/profilePath';
+import { languages } from '../i18n/translations';
 
-export function Nav({ theme = 'default', onToggleTheme }) {
+export function Nav({ theme = 'default', onToggleTheme, lang = 'en', onChangeLang }) {
   const { user, loading, logout } = useAuth();
   const unreadMessages = useUnreadMessageCount(user?.id);
 
@@ -33,6 +35,18 @@ export function Nav({ theme = 'default', onToggleTheme }) {
         {user?.isAdmin ? <NavLink to="/admin">Admin</NavLink> : null}
       </div>
       <div className="nav-actions">
+        <select
+          className="lang-select"
+          value={lang}
+          onChange={onChangeLang}
+          aria-label="Select language"
+        >
+          {languages.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.nativeName}
+            </option>
+          ))}
+        </select>
         <button type="button" className="btn btn-theme" onClick={onToggleTheme}>
           {theme === 'neon' ? 'Classic' : 'Neon'}
         </button>
@@ -40,15 +54,20 @@ export function Nav({ theme = 'default', onToggleTheme }) {
           <span className="nav-muted">…</span>
         ) : user ? (
           <>
-            <Link to={`/profile/${user.id}`} className="btn btn-nav-profile">
-              Profile
-            </Link>
             <span className="nav-user">
               Hi, <strong>{user.firstName}</strong>
             </span>
-            <button type="button" className="btn" onClick={logout}>
-              Sign out
-            </button>
+            <div className="btn-group">
+              <Link to={profilePath(user)} className="btn btn-sm">
+                Profile
+              </Link>
+              <Link to="/settings" className="btn btn-sm">
+                Settings
+              </Link>
+              <button type="button" className="btn btn-sm" onClick={logout}>
+                Sign out
+              </button>
+            </div>
           </>
         ) : (
           <>

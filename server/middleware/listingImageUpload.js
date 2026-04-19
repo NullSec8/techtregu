@@ -15,9 +15,12 @@ const storage = multer.diskStorage({
   },
 });
 
+const MAX_FILE_SIZE = Number(process.env.MAX_UPLOAD_SIZE) || 2 * 1024 * 1024;
+const MAX_FILES = Number(process.env.MAX_UPLOAD_FILES) || 8;
+
 const upload = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024, files: 8 },
+  limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES },
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype || !/^image\/(jpeg|png|gif|webp|avif)$/i.test(file.mimetype)) {
       return cb(new Error('Only JPEG, PNG, GIF, WebP, and AVIF images are allowed'));
@@ -26,4 +29,4 @@ const upload = multer({
   },
 });
 
-module.exports = { upload, uploadsDir };
+module.exports = { upload, uploadsDir, MAX_FILE_SIZE, MAX_FILES };

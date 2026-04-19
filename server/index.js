@@ -7,6 +7,9 @@ const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const socketIo = require('socket.io');
+const path = require('path');
+const passport = require('passport');
+const session = require('express-session');
 const { ensureDatabase } = require('./database/bootstrap');
 const { initSchema } = require('./database/initSchema');
 const { pool } = require('./database/pool');
@@ -17,11 +20,9 @@ const { attachSocketAuth } = require('./middleware/socketAuth');
 
 dotenv.config();
 
-if (process.env.NODE_ENV === 'production') {
-  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-    console.error('FATAL: Set JWT_SECRET to at least 32 random characters in production.');
-    process.exit(1);
-  }
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET must be set to at least 32 random characters.');
+  process.exit(1);
 }
 
 function parseCorsOrigins() {
@@ -61,6 +62,57 @@ if (process.env.NODE_ENV === 'production') {
 app.use(helmet(helmetOpts));
 app.use(cookieParser());
 
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  const GoogleStrategy = require('passport-google-oauth20').Strategy;
+  
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      const email = profile.emails?.[0]?.value;
+      if (!email) return done(new Error('No email'));
+      
+      const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+      if (rows[0]) return done(null, rows[0]);
+      
+      const username = profile.displayName || email.split('@')[0];
+      const [result] = await pool.query(
+        `INSERT INTO users (username, email, password, first_name, last_name, avatar, is_verified)
+         VALUES (?, ?, 'google_oauth', ?, ?, ?, 1)`,
+        [username, email, profile.name?.givenName || '', profile.name?.familyName || '', profile.photos?.[0]?.value || '']
+      );
+      
+      const [newUser] = await pool.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
+      return done(null, newUser[0]);
+    } catch (err) {
+      return done(err);
+    }
+  }));
+  
+  passport.serializeUser((user, done) => done(null, user.id));
+  passport.deserializeUser(async (id, done) => {
+    try {
+      const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
+      done(null, rows[0]);
+    } catch (err) {
+      done(err);
+    }
+  });
+  
+  app.use(session({
+    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 60000 },
+  }));
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  console.log('[GoogleAuth] Passport configured');
+}
+
 app.use(
   cors({
     origin(origin, cb) {
@@ -93,6 +145,14 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const messageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_MESSAGE_MAX || 20),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many messages, please slow down',
+});
+
 app.use('/api', apiLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api', ensureCsrfCookie);
@@ -120,8 +180,36 @@ app.use('/api/listings', require('./routes/listings'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/ratings', require('./routes/ratings'));
+app.use('/api/favorites', require('./routes/favorites'));
+app.use('/api/password', require('./routes/password'));
+app.use('/api/locations', require('./routes/locations'));
+app.use('/api/consents', require('./routes/consents'));
 
 attachSocketAuth(io);
+
+process.on('SIGTERM', async () => {
+  console.log('Shutting down gracefully...');
+  await pool.end();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('Shutting down gracefully...');
+  await pool.end();
+  process.exit(0);
+});
+
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.url.startsWith('/api') && !req.url.startsWith('/uploads') && !req.url.startsWith('/socket.io')) {
+    return res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'), (err) => {
+      if (err) {
+        console.error('Error serving index.html:', err.message);
+        res.status(404).send('Not found');
+      }
+    });
+  }
+  next();
+});
 
 app.use((err, req, res, _next) => {
   log('error', 'express_error', {

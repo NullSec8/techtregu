@@ -43,20 +43,89 @@ export function PrivacyPage() {
 
   return (
     <article className="page-static">
-      <h1>Privacy policy</h1>
-      <p className="static-meta">Last updated: April 2026 · Placeholder for your legal review.</p>
+      <h1>Privacy Policy</h1>
+      <p className="static-meta">Last updated: April 2026</p>
       <section className="static-section">
-        <h2>What we collect</h2>
+        <h2>What We Collect</h2>
         <p>
-          Accounts may store email, name, username, optional phone, location, and listings you create. JWT tokens
-          keep you signed in in this demo app; configure production cookies and HTTPS appropriately.
+          We collect information you provide when creating an account: username, email, name, 
+          phone number (optional), and location. We also collect data from listings you create 
+          including product details, images, and pricing.
         </p>
       </section>
       <section className="static-section">
-        <h2>How we use data</h2>
+        <h2>How We Use Your Data</h2>
         <p>
-          Data is used to run the marketplace: show listings, attribute them to sellers, and authenticate requests.
-          Replace this section with your jurisdiction-specific text (GDPR, etc.) before launch.
+          Your data is used to: authenticate your account, display your listings to other users, 
+          enable communication between buyers and sellers, and improve our services. 
+          We do not sell your personal information to third parties.
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Data Security</h2>
+        <p>
+          We use industry-standard security measures to protect your data. Passwords are encrypted 
+          using bcrypt. Sessions are managed through secure JWT tokens.
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Your Rights</h2>
+        <p>
+          Under Kosovo data protection law and GDPR, you have the right to access, correct, or delete 
+          your personal data. Contact us to exercise these rights.
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Cookies</h2>
+        <p>
+          We use cookies to keep you signed in. By using TechTregu, you agree to our use of 
+          cookies for authentication purposes.
+        </p>
+      </section>
+      <p className="static-footer-note">
+        <Link to="/">← Back to listings</Link>
+      </p>
+    </article>
+  );
+}
+
+export function ContactPage() {
+  useDocumentTitle(pageTitle('Contact'));
+
+  return (
+    <article className="page-static">
+      <h1>Contact Us</h1>
+      <p className="static-meta">We'd love to hear from you</p>
+      <section className="static-section">
+        <h2>Email</h2>
+        <p>
+          For general inquiries: <strong>support@techtregu.com</strong>
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Support</h2>
+        <p>
+          For help with your account or listings, email us at <strong>support@techtregu.com</strong> 
+          and include your username.
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Partnerships</h2>
+        <p>
+          For business partnerships or bulk sellers, contact: <strong>partners@techtregu.com</strong>
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Location</h2>
+        <p>
+          TechTregu is based in <strong>Prishtina, Kosovo</strong>. All item pickups 
+          are arranged directly between buyers and sellers.
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Response Time</h2>
+        <p>
+          We typically respond within 24-48 hours on business days.
         </p>
       </section>
       <p className="static-footer-note">
@@ -71,20 +140,64 @@ export function TermsPage() {
 
   return (
     <article className="page-static">
-      <h1>Terms of use</h1>
-      <p className="static-meta">Last updated: April 2026 · Placeholder for your legal review.</p>
+      <h1>Terms of Service</h1>
+      <p className="static-meta">Last updated: April 2026</p>
       <section className="static-section">
-        <h2>Marketplace rules</h2>
+        <h2>Acceptance of Terms</h2>
         <p>
-          Listings must describe real items accurately. Prohibited goods, scams, and harassment are not allowed.
-          TechTregu is provided as-is in this starter project; production terms should be drafted with counsel.
+          By using TechTregu, you agree to be bound by these terms. If you do not agree to these terms, 
+          please do not use our platform.
         </p>
       </section>
       <section className="static-section">
-        <h2>Liability</h2>
+        <h2>User Accounts</h2>
         <p>
-          Transactions are between buyers and sellers. This demo does not process payments. Add dispute and
-          limitation clauses suitable for your business.
+          You must provide accurate information when creating an account. You are responsible for maintaining 
+          the security of your account and password. You must be at least 16 years old to use TechTregu.
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Listing Rules</h2>
+        <p>
+          All listings must: accurately describe the item being sold, include clear photos, 
+          state the actual condition (new, used, refurbished), and show the real price in EUR.
+        </p>
+        <p>Prohibited listings include:</p>
+        <ul>
+          <li>Stolen or illegal goods</li>
+          <li>Counterfeit or pirated items</li>
+          <li>Items that violate Kosovo or international law</li>
+          <li>Services而非物理商品</li>
+        </ul>
+      </section>
+      <section className="static-section">
+        <h2>Transactions</h2>
+        <p>
+          TechTregu is a platform connecting buyers and sellers. We do not process payments 
+          or handle shipping. All transactions are between the buyer and seller directly.
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Prohibited Conduct</h2>
+        <p>You agree not to:</p>
+        <ul>
+          <li>Post false or misleading listings</li>
+          <li>Harass or scam other users</li>
+          <li>Attempt to bypass our safety features</li>
+          <li>Use the platform for illegal purposes</li>
+        </ul>
+      </section>
+      <section className="static-section">
+        <h2>Disclaimer</h2>
+        <p>
+          TechTregu is provided "as is" without any warranties. We do not guarantee the quality, 
+          safety, or legality of items listed by users.
+        </p>
+      </section>
+      <section className="static-section">
+        <h2>Contact</h2>
+        <p>
+          For terms-related questions, contact us at: support@techtregu.com
         </p>
       </section>
       <p className="static-footer-note">

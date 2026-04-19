@@ -1,0 +1,55 @@
+export const LOCATIONS = [
+  { code: 'pr', name: 'Prishtinë', nameEn: 'Pristina' },
+  { code: 'pz', name: 'Prizren', nameEn: 'Prizren' },
+  { code: 'pe', name: 'Pejë', nameEn: 'Peć' },
+  { code: 'jk', name: 'Junik', nameEn: 'Junik' },
+  { code: 'mk', name: 'Mitrovicë', nameEn: 'Mitrovica' },
+  { code: 'v', name: 'Vushtrri', nameEn: 'Vučitrn' },
+  { code: 'gj', name: 'Gjakovë', nameEn: 'Đakovica' },
+  { code: 'gk', name: 'Gjilan', nameEn: 'Gnjilane' },
+  { code: 'fer', name: 'Ferizaj', nameEn: 'Ferizaj' },
+  { code: 'kk', name: 'Kamykat', nameEn: 'Kamenica' },
+  { code: 'dl', name: 'Drenas', nameEn: 'Drenas' },
+  { code: 'sk', name: 'Suhodër', nameEn: 'Suhodër' },
+  { code: 'lip', name: 'Lipjan', nameEn: 'Lipjan' },
+  { code: 'ob', name: 'Obiliq', nameEn: 'Obilić' },
+  { code: 'kk2', name: 'Klinë', nameEn: 'Klina' },
+  { code: 'isti', name: 'Istog', nameEn: 'Istok' },
+  { code: 'kl', name: 'Klašnjë', nameEn: 'Klašnjë' },
+  { code: 'rut', name: 'Rrahman', nameEn: 'Rahovec' },
+  { code: 'pec', name: 'Pacaj', nameEn: 'Pacan' },
+  { code: 'shk', name: 'Shkup', nameEn: 'Skopje (MK)' },
+  { code: 'tir', name: 'Tiranë', nameEn: 'Tirana (AL)' },
+  { code: 'prist', name: 'Prishtinë', nameEn: 'Pristina' },
+  { code: 't', name: 'Trepçë', nameEn: 'Trepča' },
+  { code: 'zm', name: 'Zveçan', nameEn: 'Zvečan' },
+  { code: 'z', name: 'Zubin Potok', nameEn: 'Zubin Potok' },
+  { code: 'lep', name: 'Leposaviq', nameEn: 'Leposavić' },
+  { code: 'gra', name: 'Gračanica', nameEn: 'Gračanica' },
+  { code: 'ran', name: 'Ranillug', nameEn: 'Ranillug' },
+  { code: 'nov', name: 'Novobërdë', nameEn: 'Novo Brdo' },
+  { code: 'part', name: 'Partesh', nameEn: 'Partesh' },
+  { code: 'kori', name: 'Koriša', nameEn: 'Koriša' },
+  { code: 'prem', name: 'Premtivo', nameEn: 'Premanode' },
+  { code: 'glo', name: 'Glogovac', nameEn: 'Glogovac' },
+  { code: 'mamo', name: 'Mamushë', nameEn: 'Mamušić' },
+  { code: 'nerod', name: 'Nerodime', nameEn: 'Nerodime' },
+  { code: 'kozh', name: 'Kozh', nameEn: 'Kozh' },
+  { code: 'klok', name: 'Klokot', nameEn: 'Klokot' },
+  { code: 'vlasi', name: 'Vllasë', nameEn: 'Vllašin' },
+  { code: 'haxo', name: 'Haxhaj', nameEn: 'Haxhaj' },
+  { code: 'buro', name: 'Burojë', nameEn: 'Burojë' },
+  { code: 'rr', name: 'Rahovec', nameEn: 'Rahovec' },
+  { code: 'deç', name: 'Decan', nameEn: 'Deçan' },
+  { code: 'isd', name: 'Isniq', nameEn: 'Isniq' },
+  { code: 'q', name: 'Qirke', nameEn: 'Ćirković' },
+  { code: 'cr', name: 'Carragoj', nameEn: 'Crna Gora' },
+];
+
+export function getLocationByCode(code) {
+  return LOCATIONS.find(l => l.code === code);
+}
+
+export function getLocations() {
+  return LOCATIONS.map(l => ({ code: l.code, name: l.name }));
+}

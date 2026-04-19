@@ -16,6 +16,7 @@ export function RegisterPage() {
     lastName: '',
     phone: '',
     location: '',
+    age: '',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -37,6 +38,7 @@ export function RegisterPage() {
         lastName: form.lastName.trim(),
         phone: form.phone.trim() || undefined,
         location: form.location.trim() || undefined,
+        age: form.age ? Number(form.age) : undefined,
       });
       navigate('/');
     } catch (err) {
@@ -92,12 +94,19 @@ export function RegisterPage() {
           </label>
           <div className="form-row">
             <label className="form-field">
-              <span>Phone (optional)</span>
-              <input value={form.phone} onChange={setField('phone')} />
+              <span>Age (optional)</span>
+              <input
+                type="number"
+                min="13"
+                max="120"
+                value={form.age}
+                onChange={setField('age')}
+                placeholder="13+"
+              />
             </label>
             <label className="form-field">
               <span>Location (optional)</span>
-              <input value={form.location} onChange={setField('location')} placeholder="City, country" />
+              <input value={form.location} onChange={setField('location')} placeholder="City" />
             </label>
           </div>
           <div className="form-actions">

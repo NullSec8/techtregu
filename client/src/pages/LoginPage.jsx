@@ -69,6 +69,9 @@ export function LoginPage() {
               autoComplete="current-password"
             />
           </label>
+          <p className="form-field-link">
+            <Link to="/forgot-password">Forgot password?</Link>
+          </p>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={submitting}>
               {submitting ? 'Signing in…' : 'Sign in'}
@@ -77,9 +80,6 @@ export function LoginPage() {
         </form>
         <p className="auth-footer">
           No account? <Link to="/register">Register</Link>
-        </p>
-        <p className="auth-hint">
-          Demo seed: <code>demo@techtregu.com</code> / <code>DemoPass123</code>
         </p>
       </div>
     </div>

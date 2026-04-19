@@ -9,10 +9,13 @@ const STATEMENTS = [
     first_name VARCHAR(120) NOT NULL,
     last_name VARCHAR(120) NOT NULL,
     phone VARCHAR(64) DEFAULT NULL,
-    location VARCHAR(255) DEFAULT NULL,
+    location VARCHAR(64) DEFAULT NULL,
     avatar VARCHAR(512) DEFAULT '',
+    age SMALLINT UNSIGNED DEFAULT NULL,
     is_admin TINYINT(1) NOT NULL DEFAULT 0,
     is_verified TINYINT(1) NOT NULL DEFAULT 0,
+    reset_token VARCHAR(64) DEFAULT NULL,
+    reset_expires TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL DEFAULT NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
@@ -28,6 +31,7 @@ const STATEMENTS = [
     location VARCHAR(255) NOT NULL,
     seller_id INT UNSIGNED NOT NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
+    is_sold TINYINT(1) NOT NULL DEFAULT 0,
     views INT UNSIGNED NOT NULL DEFAULT 0,
     specs JSON DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -43,6 +47,9 @@ const STATEMENTS = [
     content TEXT NOT NULL,
     is_read TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sender (sender_id),
+    INDEX idx_receiver (receiver_id),
+    INDEX idx_conversation (sender_id, receiver_id),
     CONSTRAINT fk_msg_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_msg_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_msg_listing FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE SET NULL
@@ -77,11 +84,41 @@ const STATEMENTS = [
     CONSTRAINT fk_review_listing FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE SET NULL,
     UNIQUE KEY uq_reviewer_seller (reviewer_id, seller_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+  `CREATE TABLE IF NOT EXISTS user_blocks (
+    blocker_id INT UNSIGNED NOT NULL,
+    blocked_id INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (blocker_id, blocked_id),
+    CONSTRAINT fk_user_blocks_blocker FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_blocks_blocked FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+  `CREATE TABLE IF NOT EXISTS user_favorites (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    listing_id INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_listing (user_id, listing_id),
+    CONSTRAINT fk_fav_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_fav_listing FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+  `CREATE INDEX idx_listings_search ON listings(title(100), description(100))`,
+  `CREATE INDEX idx_listings_seller ON listings(seller_id, is_active)`,
+  `CREATE INDEX idx_listings_category ON listings(category, is_active)`,
+  `CREATE INDEX idx_messages_convo ON messages(sender_id, receiver_id)`,
 ];
 
 async function initSchema() {
   for (const sql of STATEMENTS) {
-    await pool.query(sql);
+    try {
+      await pool.query(sql);
+    } catch (err) {
+      if (!err.message.includes('Duplicate key name')) {
+        console.error('Schema init error:', err.message);
+      }
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ProfilePageSkeleton } from '../components/PageSkeletons';
@@ -23,9 +23,10 @@ function formatDate(iso) {
 }
 
 export function ProfilePage() {
-  const { id } = useParams();
+  const { id: profileKey } = useParams();
+  const navigate = useNavigate();
   const { user: me, refreshUser } = useAuth();
-  const userId = id ? parseInt(id, 10) : NaN;
+  const userId = profileKey ? parseInt(profileKey, 10) : NaN;
 
   const [profile, setProfile] = useState(null);
   const [listings, setListings] = useState([]);
@@ -44,13 +45,14 @@ export function ProfilePage() {
     avatar: '',
   });
 
-  const isOwn = me && profile && Number(me.id) === Number(profile.id);
+  const isOwn = !loading && me && profile && Number(me.id) === Number(profile.id);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      if (Number.isNaN(userId)) {
+      const key = profileKey;
+      if (!key) {
         setError('Invalid profile.');
         setLoading(false);
         return;
@@ -59,10 +61,21 @@ export function ProfilePage() {
       setLoading(true);
       setError(null);
       try {
-        const [userRes, listingsRes] = await Promise.all([
-          api.get(`/users/${userId}`),
-          api.get(`/users/${userId}/listings`),
-        ]);
+        let userRes, listingsRes;
+        if (!Number.isNaN(userId) && String(userId) === String(key)) {
+          [userRes, listingsRes] = await Promise.all([
+            api.get(`/users/${userId}`),
+            api.get(`/users/${userId}/listings`),
+          ]);
+          if (userRes?.data?.username) {
+            navigate(`/profile/${encodeURIComponent(userRes.data.username)}`, { replace: true });
+          }
+        } else {
+          [userRes, listingsRes] = await Promise.all([
+            api.get(`/users/by-username/${encodeURIComponent(key || '')}`),
+            api.get(`/users/by-username/${encodeURIComponent(key || '')}/listings`),
+          ]);
+        }
         if (cancelled) return;
         setProfile(userRes.data);
         setListings((listingsRes.data || []).map(normalizeListing));
@@ -88,24 +101,24 @@ export function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, profileKey, navigate]);
 
   useEffect(() => {
     let cancelled = false;
     async function loadRating() {
-      if (Number.isNaN(userId)) return;
+      if (!profile?.id) return;
       try {
-        const { data } = await api.get(`/ratings/seller/${userId}`);
+        const { data } = await api.get(`/ratings/seller/${profile.id}`);
         if (!cancelled) setRating(data);
       } catch {
         if (!cancelled) setRating({ averageRating: null, totalReviews: 0, latestReviews: [] });
       }
     }
-    loadRating();
+    if (profile?.id) loadRating();
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [profile?.id]);
 
   const displayName =
     profile &&
@@ -171,12 +184,12 @@ export function ProfilePage() {
     );
   }
 
-  const initials = displayName
+  const initials = (displayName || '')
     .split(/\s+/)
     .map((n) => n[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase();
+    .toUpperCase() || '??';
 
   return (
     <div className="page-profile">

@@ -59,7 +59,7 @@ export function ProductCard({ product, isFavorite = false, onToggleFavorite }) {
         </span>
         {sellerId != null ? (
           <Link
-            to={`/profile/${sellerId}`}
+            to={`/profile/${encodeURIComponent(sellerHandle || sellerId)}`}
             className="card-seller card-seller-link"
             onClick={(e) => e.stopPropagation()}
           >

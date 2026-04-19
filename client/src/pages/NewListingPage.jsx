@@ -28,6 +28,11 @@ export function NewListingPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [locations, setLocations] = useState([]);
+
+  useEffect(() => {
+    api.get('/locations').then((r) => setLocations(r.data)).catch(() => setLocations([]));
+  }, []);
 
   useEffect(() => {
     setSpecs((prev) => initSpecStateForCategory(form.category, prev));
@@ -133,7 +138,7 @@ export function NewListingPage() {
               <input
                 type="number"
                 step="0.01"
-                min="0"
+                min="0.01"
                 value={form.price}
                 onChange={setField('price')}
                 required
@@ -141,7 +146,14 @@ export function NewListingPage() {
             </label>
             <label className="form-field">
               <span>Location</span>
-              <input value={form.location} onChange={setField('location')} required placeholder="City, country" />
+              <select value={form.location} onChange={setField('location')} required>
+                <option value="">Select location</option>
+                {locations.map((loc) => (
+                  <option key={loc.code} value={loc.code}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
           <div className="form-row">
