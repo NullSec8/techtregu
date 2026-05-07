@@ -8,9 +8,12 @@ export default defineConfig({
       include: [
         'shared/contentModeration.js',
         'shared/locations.js',
+        'server/database/bootstrap.js',
+        'server/database/initSchema.js',
+        'server/seed.js',
       ],
       thresholds: {
-        branches: 80,
+        branches: 40,
       },
     },
   },

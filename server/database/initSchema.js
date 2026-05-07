@@ -1,5 +1,3 @@
-const { pool } = require('./pool');
-
 const STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -141,7 +139,7 @@ const STATEMENTS = [
   `CREATE INDEX idx_users_reset_token ON users(reset_token)`,
 ];
 
-async function initSchema() {
+async function initSchema(pool = require('./pool').pool) {
   const IGNORED_ERRORS = ['Duplicate key name', 'Table already exists', 'Duplicate column name', 'Duplicate key'];
   for (const sql of STATEMENTS) {
     try {

@@ -1,7 +1,6 @@
-const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-async function ensureDatabase() {
+async function ensureDatabase(mysql = require("mysql2/promise")) {
   const config = {
     host: process.env.MYSQL_HOST || 'localhost',
     port: process.env.MYSQL_PORT ? Number(process.env.MYSQL_PORT) : 3306,

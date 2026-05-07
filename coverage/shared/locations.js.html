@@ -3,15 +3,15 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for contentModeration.js</title>
+    <title>Code coverage report for shared/locations.js</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="prettify.css" />
-    <link rel="stylesheet" href="base.css" />
-    <link rel="shortcut icon" type="image/x-icon" href="favicon.png" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style type='text/css'>
         .coverage-summary .sorter {
-            background-image: url(sort-arrow-sprite.png);
+            background-image: url(../sort-arrow-sprite.png);
         }
     </style>
 </head>
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="index.html">All files</a> contentModeration.js</h1>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">shared</a> locations.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>16/16</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>6/6</span>
+                <span class='fraction'>0/0</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>3/3</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>14/14</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
@@ -117,15 +117,7 @@
 <a name='L52'></a><a href='#L52'>52</a>
 <a name='L53'></a><a href='#L53'>53</a>
 <a name='L54'></a><a href='#L54'>54</a>
-<a name='L55'></a><a href='#L55'>55</a>
-<a name='L56'></a><a href='#L56'>56</a>
-<a name='L57'></a><a href='#L57'>57</a>
-<a name='L58'></a><a href='#L58'>58</a>
-<a name='L59'></a><a href='#L59'>59</a>
-<a name='L60'></a><a href='#L60'>60</a>
-<a name='L61'></a><a href='#L61'>61</a>
-<a name='L62'></a><a href='#L62'>62</a>
-<a name='L63'></a><a href='#L63'>63</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L55'></a><a href='#L55'>55</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -143,7 +135,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -161,12 +152,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1872x</span>
-<span class="cline-any cline-yes">1584x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -174,98 +159,89 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span></td><td class="text"><pre class="prettyprint lang-js">const TECH_KEYWORDS = [
-  'laptop', 'notebook', 'macbook',
-  'rtx', 'gtx', 'nvidia', 'amd', 'radeon', 'intel', 'apple', 'm1', 'm2', 'm3',
-  'cpu', 'processor', 'gpu', 'graphics card', 'vga', 'video card', 'kartë grafike',
-  'ram', 'memory', 'ddr4', 'ddr5', 'storage', 'ssd', 'nvme', 'hdd', 'disk',
-  'motherboard', 'mobo', 'mainboard', 'pllakë amë', 'psu', 'power supply', 'furnizim me energji',
-  'cpu cooler', 'cooling', 'aio cooler', 'freskues', 'monitor', 'display', 'screen', 'lcd', 'oled', '144hz', '240hz', 'gaming monitor',
-  'keyboard', 'mouse', 'headset', 'audio', 'speaker', 'microphone', 'mikrofon', 'webcam', 'kamera',
-  'printer', 'scanner', 'router', 'network', 'rrjet', 'tablet', 'ipad', 'android', 'ios',
-  'cable', 'adapter', 'charger', 'usb', 'hdmi', 'dp', 'displayport', 'kabllo', 'karikues',
-  'pc', 'computer', 'kompjuter', 'desktop', 'workstation', 'server',
-  'ryzen', 'core i3', 'core i5', 'core i7', 'core i9', 'pentium', 'celeron', 'xeon', 'threadripper', 'procesor', 'bajt',
-  'vr', 'virtual reality', 'oculus', 'quest', 'realitet virtual',
-  'datacenter', 'cloud storage', 'AWS', 'Azure', 'google cloud',
-  'Linux', 'Windows', 'macOS', 'firewall', 'vpn', 'antivirus', 'malware', 'ransomware',
-  'webcam', 'ethernet', 'wifi', 'router', 'switch', 'nas', 'raid',
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">279x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">180x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export const LOCATIONS = [
+  { code: 'pr', name: 'Prishtinë', nameEn: 'Pristina' },
+  { code: 'pz', name: 'Prizren', nameEn: 'Prizren' },
+  { code: 'pe', name: 'Pejë', nameEn: 'Peć' },
+  { code: 'jk', name: 'Junik', nameEn: 'Junik' },
+  { code: 'mk', name: 'Mitrovicë', nameEn: 'Mitrovica' },
+  { code: 'v', name: 'Vushtrri', nameEn: 'Vučitrn' },
+  { code: 'gj', name: 'Gjakovë', nameEn: 'Đakovica' },
+  { code: 'gk', name: 'Gjilan', nameEn: 'Gnjilane' },
+  { code: 'fer', name: 'Ferizaj', nameEn: 'Ferizaj' },
+  { code: 'kk', name: 'Kamykat', nameEn: 'Kamenica' },
+  { code: 'dl', name: 'Drenas', nameEn: 'Drenas' },
+  { code: 'sk', name: 'Suhodër', nameEn: 'Suhodër' },
+  { code: 'lip', name: 'Lipjan', nameEn: 'Lipjan' },
+  { code: 'ob', name: 'Obiliq', nameEn: 'Obilić' },
+  { code: 'kk2', name: 'Klinë', nameEn: 'Klina' },
+  { code: 'isti', name: 'Istog', nameEn: 'Istok' },
+  { code: 'kl', name: 'Klašnjë', nameEn: 'Klašnjë' },
+  { code: 'rut', name: 'Rrahman', nameEn: 'Rahovec' },
+  { code: 'pec', name: 'Pacaj', nameEn: 'Pacan' },
+  { code: 'shk', name: 'Shkup', nameEn: 'Skopje (MK)' },
+  { code: 'tir', name: 'Tiranë', nameEn: 'Tirana (AL)' },
+  { code: 'prist', name: 'Prishtinë', nameEn: 'Pristina' },
+  { code: 't', name: 'Trepçë', nameEn: 'Trepča' },
+  { code: 'zm', name: 'Zveçan', nameEn: 'Zvečan' },
+  { code: 'z', name: 'Zubin Potok', nameEn: 'Zubin Potok' },
+  { code: 'lep', name: 'Leposaviq', nameEn: 'Leposavić' },
+  { code: 'gra', name: 'Gračanica', nameEn: 'Gračanica' },
+  { code: 'ran', name: 'Ranillug', nameEn: 'Ranillug' },
+  { code: 'nov', name: 'Novobërdë', nameEn: 'Novo Brdo' },
+  { code: 'part', name: 'Partesh', nameEn: 'Partesh' },
+  { code: 'kori', name: 'Koriša', nameEn: 'Koriša' },
+  { code: 'prem', name: 'Premtivo', nameEn: 'Premanode' },
+  { code: 'glo', name: 'Glogovac', nameEn: 'Glogovac' },
+  { code: 'mamo', name: 'Mamushë', nameEn: 'Mamušić' },
+  { code: 'nerod', name: 'Nerodime', nameEn: 'Nerodime' },
+  { code: 'kozh', name: 'Kozh', nameEn: 'Kozh' },
+  { code: 'klok', name: 'Klokot', nameEn: 'Klokot' },
+  { code: 'vlasi', name: 'Vllasë', nameEn: 'Vllašin' },
+  { code: 'haxo', name: 'Haxhaj', nameEn: 'Haxhaj' },
+  { code: 'buro', name: 'Burojë', nameEn: 'Burojë' },
+  { code: 'rr', name: 'Rahovec', nameEn: 'Rahovec' },
+  { code: 'deç', name: 'Decan', nameEn: 'Deçan' },
+  { code: 'isd', name: 'Isniq', nameEn: 'Isniq' },
+  { code: 'q', name: 'Qirke', nameEn: 'Ćirković' },
+  { code: 'cr', name: 'Carragoj', nameEn: 'Crna Gora' },
 ];
 &nbsp;
-const SCAM_KEYWORDS = [
-  'whatsapp', 'viber', 'telegram', 'dm', 'direct message', 'mesazh direkt', 'cash', 'cashapp', 'venmo', 'paypal gift',
-  'gift card', 'itunes', 'google play', 'amazon gift', 'bitcoin', 'btc', 'crypto', 'ethereum', 'dogecoin',
-  'urgent', 'fast deal', 'limited time', 'act now', 'verify account', 'confirm identity', 'id verification', 'verifikim identiteti',
-  'irs', 'tax', 'government', 'police', 'court', 'inheritance', 'lottery', 'winner', 'prize', 'fitues',
-  'boyfriend', 'girlfriend', 'dating', 'relationship', 'investment', 'profit', 'return', 'make money', 'investim',
-  'mlm', 'pyramid', 'matrix', 'network marketing', 'scheme', 'pyramid scheme', 'program', 'bonus', 'bonus falas',
-  'refund', 'claim', 'free money', 'fundraising', 'donation', 'paypal scam', 'money laundering', 'blackmail', 'defraud',
-  'scam', 'scammer', 'fake', 'fraud', 'investment fraud', 'phishing', 'clickbait', 'data theft', 'identity theft',
-  'account hack', 'fake website', 'suspicious link', 'phishing link', 'wrong number', 'cash advance', 'quick loan',
-  'ponzi', 'money transfer', 'western union', 'wire transfer', 'social engineering', 'nigerian prince', 'romance scam',
-  'lotto winner', 'fake job offer', 'unrealistic returns', 'fake job', 'work from home scam', 'contract scam', 'paypal phishing',
-  'online survey scam', 'fake charity', 'government grant scam', 'fake employment', 'unclaimed prize',
-];
-&nbsp;
-&nbsp;
-&nbsp;
-function analyzeContent(title, description) {
-  const text = `${title} ${description}`.toLowerCase();
-  
-  const techScore = TECH_KEYWORDS.filter(k =&gt; text.includes(k.toLowerCase())).length;
-  const scamScore = SCAM_KEYWORDS.filter(k =&gt; text.includes(k.toLowerCase())).length;
-  
-  const result = {
-    isTech: techScore &gt;= 1,
-    techScore,
-    scamScore,
-    isSuspicious: scamScore &gt;= 2,
-    warnings: [],
-  };
-  
-  if (scamScore &gt;= 1) {
-    result.warnings.push('This listing may contain suspicious keywords');
-  }
-  if (scamScore &gt;= 2) {
-    result.warnings.push('This listing has been flagged for review');
-  }
-  if (techScore === 0) {
-    result.warnings.push('This may not be a tech product');
-  }
-  
-  return result;
+export function getLocationByCode(code) {
+  return LOCATIONS.find(l =&gt; l.code === code);
 }
 &nbsp;
-module.exports = { analyzeContent, TECH_KEYWORDS, SCAM_KEYWORDS };</pre></td></tr></table></pre>
+export function getLocations() {
+  return LOCATIONS.map(l =&gt; ({ code: l.code, name: l.name }));
+}</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-07T16:23:54.013Z
+                at 2026-05-07T17:45:07.659Z
             </div>
-        <script src="prettify.js"></script>
+        <script src="../prettify.js"></script>
         <script>
             window.onload = function () {
                 prettyPrint();
             };
         </script>
-        <script src="sorter.js"></script>
-        <script src="block-navigation.js"></script>
+        <script src="../sorter.js"></script>
+        <script src="../block-navigation.js"></script>
     </body>
 </html>
     
