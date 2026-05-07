@@ -1,3 +1,5 @@
 {
-  "*.{js,jsx}": ["eslint --fix"]
+  "client/src/**/*.{js,jsx}": ["eslint --config client/eslint.config.js --fix"],
+  "server/**/*.js": ["eslint --config server/eslint.config.js --fix"],
+  "shared/**/*.{js,jsx}": ["eslint --config server/eslint.config.js --fix"]
 }

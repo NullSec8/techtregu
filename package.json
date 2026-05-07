@@ -14,15 +14,19 @@
     "prepare": "husky",
     "lint:server": "eslint server/ --config server/eslint.config.js",
     "lint:client": "npm run lint --prefix client",
-    "lint": "npm run lint:server && npm run lint:client"
+    "lint": "npm run lint:server && npm run lint:client",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^4.1.5",
     "concurrently": "^8.2.2",
     "eslint": "^10.3.0",
     "globals": "^17.6.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.4.0"
+    "lint-staged": "^16.4.0",
+    "vitest": "^4.1.5"
   },
   "keywords": [
     "marketplace",
