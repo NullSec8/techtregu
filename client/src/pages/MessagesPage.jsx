@@ -32,7 +32,7 @@ function formatLastSeen(ts, t) {
   return `${t('lastSeen')} ${d.toLocaleDateString()}`;
 }
 
-function formatMessageTime(ts, t) {
+function formatMessageTime(ts) {
   if (!ts) return '';
   const d = new Date(ts);
   const now = new Date();
@@ -177,10 +177,15 @@ export function MessagesPage() {
 
   useEffect(() => {
     if (!user?.id) return undefined;
+    function readXsrfCookie() {
+      const m = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
     const socket = io(process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000', {
       path: '/socket.io',
       withCredentials: true,
       transports: ['websocket', 'polling'],
+      auth: { xsrfToken: readXsrfCookie() },
     });
     function joinOwnRoom() {
       socket.emit('join', user.id);
@@ -418,7 +423,7 @@ export function MessagesPage() {
                         <div className="msg-head">
                           <strong>@{msg.sender?.username || 'user'}</strong>
                           <span className="msg-time" title={new Date(msg.createdAt).toLocaleString()}>
-                            {formatMessageTime(msg.createdAt, t)}
+                            {formatMessageTime(msg.createdAt)}
                             {mine && (
                               <span className={`msg-status ${msg.isRead ? 'read' : ''}`}>
                                 {msg.isRead ? '✓✓' : msg.isDelivered ? '✓✓' : '✓'}
