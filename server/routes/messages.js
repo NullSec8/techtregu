@@ -5,9 +5,302 @@ const messageRepository = require('../database/messageRepository');
 const auth = require('../middleware/auth');
 const { plainText } = require('../utils/sanitize');
 const { analyzeContent } = require('../../shared/contentModeration');
-const { asyncHandler, AppError } = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 const router = express.Router();
+/**
+ * @openapi
+ * /api/messages:
+ *   get:
+ *     tags: [Messages]
+ *     summary: Get user's messages
+ *     description: Returns all conversations and messages for the authenticated user. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of messages
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Message'
+ *       401:
+ *         description: Not authenticated
+ *
+ *   post:
+ *     tags: [Messages]
+ *     summary: Send a message
+ *     description: Send a new message to another user. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - receiver
+ *               - content
+ *             properties:
+ *               receiver:
+ *                 type: integer
+ *                 description: Recipient user ID
+ *               content:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 1000
+ *                 description: Message content
+ *               listing:
+ *                 type: integer
+ *                 description: Optional related listing ID
+ *     responses:
+ *       200:
+ *         description: Message sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Message'
+ *       400:
+ *         description: Validation error, self-message, or content flagged
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Blocked user
+ *
+ * @openapi
+ * /api/messages/conversation/{userId}:
+ *   get:
+ *     tags: [Messages]
+ *     summary: Get conversation with a user
+ *     description: Get the full message conversation between the authenticated user and another user. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The other user's ID
+ *     responses:
+ *       200:
+ *         description: Array of messages in the conversation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Message'
+ *       400:
+ *         description: Invalid user ID
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Conversation unavailable (blocked)
+ *
+ * @openapi
+ * /api/messages/{id}/read:
+ *   put:
+ *     tags: [Messages]
+ *     summary: Mark message as read
+ *     description: Mark a specific message as read. Only the recipient can mark a message as read. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Message ID
+ *     responses:
+ *       200:
+ *         description: Message marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Message'
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Message not found
+ *
+ * @openapi
+ * /api/messages/blocks/{userId}:
+ *   post:
+ *     tags: [Messages]
+ *     summary: Block a user
+ *     description: Block another user from sending you messages. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID to block
+ *     responses:
+ *       200:
+ *         description: User blocked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid user ID or cannot block self
+ *       401:
+ *         description: Not authenticated
+ *
+ *   delete:
+ *     tags: [Messages]
+ *     summary: Unblock a user
+ *     description: Remove a block on another user. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID to unblock
+ *     responses:
+ *       200:
+ *         description: User unblocked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid user ID
+ *       401:
+ *         description: Not authenticated
+ *
+ * @openapi
+ * /api/messages/relationship/{userId}:
+ *   get:
+ *     tags: [Messages]
+ *     summary: Check block relationship
+ *     description: Check the block relationship between the authenticated user and another user. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The other user's ID
+ *     responses:
+ *       200:
+ *         description: Block relationship status
+ *       401:
+ *         description: Not authenticated
+ *
+ * @openapi
+ * /api/messages/blocks:
+ *   get:
+ *     tags: [Messages]
+ *     summary: List blocked users
+ *     description: Get a list of all users blocked by the authenticated user. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: List of blocked users
+ *       401:
+ *         description: Not authenticated
+ *
+ * @openapi
+ * /api/messages/unread-count:
+ *   get:
+ *     tags: [Messages]
+ *     summary: Get unread message count
+ *     description: Get the count of unread messages for the authenticated user. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: integer
+ *       401:
+ *         description: Not authenticated
+ *
+ * @openapi
+ * /api/messages/conversation/{userId}/read:
+ *   put:
+ *     tags: [Messages]
+ *     summary: Mark conversation as read
+ *     description: Mark all messages in a conversation as read. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The other user's ID
+ *     responses:
+ *       200:
+ *         description: Conversation marked as read
+ *       400:
+ *         description: Invalid user ID
+ *       401:
+ *         description: Not authenticated
+ *
+ * @openapi
+ * /api/messages/conversation/{userId}:
+ *   delete:
+ *     tags: [Messages]
+ *     summary: Delete conversation
+ *     description: Delete the entire conversation with another user. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The other user's ID
+ *     responses:
+ *       200:
+ *         description: Conversation deleted
+ *       400:
+ *         description: Invalid user ID
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Cannot delete conversation with blocked user
+ */
 
 const messageLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -133,7 +426,7 @@ router.post(
     const message = await messageRepository.create({
       senderId: req.user.id,
       receiverId,
-      listingId: listing != null ? Number(listing) : null,
+      listingId: listing !== null && listing !== undefined ? Number(listing) : null,
       content: plainText(content, 1000),
     });
 

@@ -17,6 +17,8 @@ const { log, requestLogger } = require('./logger');
 const { uploadsDir } = require('./middleware/listingImageUpload');
 const { ensureCsrfCookie, verifyCsrf } = require('./middleware/csrf');
 const { attachSocketAuth } = require('./middleware/socketAuth');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./swagger');
 
 dotenv.config();
 
@@ -156,14 +158,6 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-const messageLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: Number(process.env.RATE_LIMIT_MESSAGE_MAX || 60),
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: 'Too many messages, please slow down',
-});
-
 app.use('/api', apiLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api', ensureCsrfCookie);
@@ -195,6 +189,10 @@ app.use('/api/favorites', require('./routes/favorites'));
 app.use('/api/password', require('./routes/password'));
 app.use('/api/locations', require('./routes/locations'));
 app.use('/api/consents', require('./routes/consents'));
+
+// Swagger API documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+log('info', 'swagger_docs_available', { url: 'http://localhost:' + (process.env.PORT || 5000) + '/api/docs' });
 
 // Database Viewer (development only)
 if (process.env.NODE_ENV !== 'production') {

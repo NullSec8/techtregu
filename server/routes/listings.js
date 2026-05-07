@@ -5,13 +5,365 @@ const { body, validationResult } = require('express-validator');
 const { fromBuffer } = require('file-type');
 const listingRepository = require('../database/listingRepository');
 const auth = require('../middleware/auth');
-const { upload } = require('../middleware/listingImageUpload');
+const { upload, uploadsDir } = require('../middleware/listingImageUpload');
 const { optimizeImage, generateThumbnails } = require('../middleware/imageOptimizer');
 const { plainText, sanitizeSpecs } = require('../utils/sanitize');
 const { analyzeContent } = require('../../shared/contentModeration');
 const { asyncHandler, AppError } = require('../utils/asyncHandler');
 
 const router = express.Router();
+/**
+ * @openapi
+ * /api/listings:
+ *   get:
+ *     tags: [Listings]
+ *     summary: List all listings
+ *     description: Retrieve a paginated list of active listings with optional filtering, searching, and sorting.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 12
+ *         description: Items per page
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [laptop, desktop, gpu, cpu, ram, storage, monitor, peripheral, other]
+ *         description: Filter by category
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for title/description
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price filter
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price filter
+ *       - in: query
+ *         name: condition
+ *         schema:
+ *           type: string
+ *           enum: [new, used, refurbished]
+ *         description: Filter by condition
+ *       - in: query
+ *         name: location
+ *         schema:
+ *           type: string
+ *         description: Filter by location
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Sort field and direction
+ *     responses:
+ *       200:
+ *         description: Paginated list of listings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 listings:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Listing'
+ *                 totalPages:
+ *                   type: integer
+ *                 currentPage:
+ *                   type: integer
+ *                 total:
+ *                   type: integer
+ *
+ * @openapi
+ * /api/listings/{id}:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Get a listing by ID
+ *     description: Retrieve the full details of a single listing by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Listing ID
+ *       - in: query
+ *         name: track
+ *         schema:
+ *           type: string
+ *           enum: ['1']
+ *         description: Set to '1' with a Referer header to track a view
+ *     responses:
+ *       200:
+ *         description: Listing details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Listing'
+ *       404:
+ *         description: Listing not found
+ *
+ *   post:
+ *     tags: [Listings]
+ *     summary: Create a new listing
+ *     description: Create a new tech product listing. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - description
+ *               - price
+ *               - category
+ *               - condition
+ *               - location
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 minLength: 3
+ *                 description: Listing title
+ *               description:
+ *                 type: string
+ *                 minLength: 10
+ *                 description: Detailed description of the item
+ *               price:
+ *                 type: number
+ *                 minimum: 0.01
+ *                 maximum: 999999
+ *                 description: Price in USD
+ *               category:
+ *                 type: string
+ *                 enum: [laptop, desktop, gpu, cpu, ram, storage, monitor, peripheral, other]
+ *               condition:
+ *                 type: string
+ *                 enum: [new, used, refurbished]
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of image URLs (upload first via POST /api/listings/images)
+ *               location:
+ *                 type: string
+ *                 maxLength: 64
+ *                 description: Location/city of the item
+ *               specs:
+ *                 type: object
+ *                 description: Product specifications as key-value pairs
+ *     responses:
+ *       200:
+ *         description: Listing created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Listing'
+ *       400:
+ *         description: Validation error or content flagged
+ *       401:
+ *         description: Not authenticated
+ *
+ *   put:
+ *     tags: [Listings]
+ *     summary: Update a listing
+ *     description: Update an existing listing. Only the owner or an admin can update. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Listing ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *                 minimum: 0.01
+ *                 maximum: 999999
+ *               category:
+ *                 type: string
+ *                 enum: [laptop, desktop, gpu, cpu, ram, storage, monitor, peripheral, other]
+ *               condition:
+ *                 type: string
+ *                 enum: [new, used, refurbished]
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               location:
+ *                 type: string
+ *               specs:
+ *                 type: object
+ *               isActive:
+ *                 type: boolean
+ *                 description: Only admins can change visibility
+ *               isSold:
+ *                 type: boolean
+ *                 description: Mark as sold
+ *     responses:
+ *       200:
+ *         description: Listing updated
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden (not owner or admin)
+ *       404:
+ *         description: Listing not found
+ *
+ *   delete:
+ *     tags: [Listings]
+ *     summary: Delete a listing
+ *     description: Delete a listing. Only the owner or an admin can delete. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Listing ID
+ *     responses:
+ *       200:
+ *         description: Listing removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Listing not found
+ *
+ * @openapi
+ * /api/listings/images:
+ *   post:
+ *     tags: [Listings]
+ *     summary: Upload listing images
+ *     description: Upload up to 8 images for a listing. Returns an array of URLs that can be used when creating or updating a listing. Requires authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Image files (JPEG, PNG, GIF, WebP, AVIF) - max 8 files
+ *     responses:
+ *       200:
+ *         description: Images uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 urls:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: Array of uploaded image URLs
+ *       400:
+ *         description: Upload failed or invalid file type
+ *       401:
+ *         description: Not authenticated
+ *
+ * @openapi
+ * /api/listings/admin/all:
+ *   get:
+ *     tags: [Listings]
+ *     summary: List all listings (admin)
+ *     description: Get all listings including inactive ones. Requires admin authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: sellerId
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: active
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Paginated list of all listings
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Admin access required
+ *
+ * @openapi
+ * /api/listings/admin/stats:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Get listing statistics (admin)
+ *     description: Get aggregate statistics about listings. Requires admin authentication.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Listing statistics
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Admin access required
+ */
 
 const ALLOWED_IMAGE_MIMES = new Set([
   'image/jpeg',
@@ -86,9 +438,9 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 router.get('/admin/all', auth, requireAdmin, asyncHandler(async (req, res) => {
-  let { page = 1, limit = 50, sellerId, active } = req.query;
-  page = Math.max(1, parseInt(page, 10) || 1);
-  limit = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+  const { page: rawPage = 1, limit: rawLimit = 50, sellerId, active } = req.query;
+  const page = Math.max(1, parseInt(rawPage, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(rawLimit, 10) || 50));
   const result = await listingRepository.findAllForAdmin({ page, limit, sellerId, active });
   res.json({
     ...result,
@@ -153,7 +505,7 @@ router.post(
       }
       const urls = files.map((f) => `/uploads/${f.filename}`);
       res.json({ urls });
-    } catch (err) {
+    } catch {
       for (const f of files) {
         try {
           fs.unlinkSync(f.path);

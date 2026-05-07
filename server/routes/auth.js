@@ -8,11 +8,208 @@ const auth = require('../middleware/auth');
 const userRepository = require('../database/userRepository');
 const { mapUser } = require('../database/mappers');
 const { pool } = require('../database/pool');
-const { asyncHandler, AppError } = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 const { logAudit } = require('../database/auditRepository');
 const { sendMail, buildWelcomeEmail } = require('../utils/emailService');
 
 const router = express.Router();
+/**
+ * @openapi
+ * /api/auth/register:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Register a new user account
+ *     description: Creates a new user account with username, email, password, first name, and last name. Returns the user data and sets a JWT cookie.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - email
+ *               - password
+ *               - firstName
+ *               - lastName
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 minLength: 3
+ *                 maxLength: 32
+ *                 description: Unique username
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User email address
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: Password with at least one uppercase, one lowercase, and one digit
+ *               firstName:
+ *                 type: string
+ *                 maxLength: 120
+ *                 description: User's first name
+ *               lastName:
+ *                 type: string
+ *                 maxLength: 120
+ *                 description: User's last name
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 username:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *       400:
+ *         description: Validation error or username/email already exists
+ *
+ * @openapi
+ * /api/auth/login:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Log in with email and password
+ *     description: Authenticates a user with email and password. Returns the user profile and sets a JWT cookie.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 username:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 avatar:
+ *                   type: string
+ *                   nullable: true
+ *                 isAdmin:
+ *                   type: boolean
+ *                 isVerified:
+ *                   type: boolean
+ *       401:
+ *         description: Invalid credentials or Google-linked account
+ *
+ * @openapi
+ * /api/auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Log out the current user
+ *     description: Clears the JWT authentication cookie.
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *
+ * @openapi
+ * /api/auth/me:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Get current user profile
+ *     description: Returns the profile of the currently authenticated user.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 username:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 avatar:
+ *                   type: string
+ *                   nullable: true
+ *                 isAdmin:
+ *                   type: boolean
+ *                 isVerified:
+ *                   type: boolean
+ *       401:
+ *         description: Not authenticated
+ *
+ * @openapi
+ * /api/auth/refresh:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Refresh authentication token
+ *     description: Generates a new JWT token for the authenticated user and sets it as a cookie. Useful for extending sessions.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 username:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *       401:
+ *         description: Not authenticated or user not found
+ */
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -109,8 +306,7 @@ router.post('/login', asyncHandler(async (req, res) => {
   const token = generateToken(user);
   res.cookie(TOKEN_COOKIE, token, authCookieOpts());
 
-  const { password: _p, ...safe } = user;
-  res.json(mapUser(safe, { includeEmail: true }));
+  res.json(mapUser(user, { includeEmail: true }));
 }));
 
 router.get('/google', (req, res) => {
@@ -135,7 +331,7 @@ router.get(
         return res.redirect('/?error=google_no_email');
       }
 
-      let [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+      const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
       
       let user = rows[0];
       
@@ -160,7 +356,7 @@ router.get(
       const token = generateToken(user);
       res.cookie(TOKEN_COOKIE, token, authCookieOpts());
       res.redirect(process.env.CLIENT_URL || 'http://localhost:5173');
-    } catch (err) {
+    } catch {
       res.redirect('/?error=google_auth_failed');
     }
   })
@@ -176,8 +372,7 @@ router.get('/me', auth, asyncHandler(async (req, res) => {
   if (!row) {
     return res.status(404).json({ message: 'User not found' });
   }
-  const { password: _p, ...safe } = row;
-  res.json(mapUser(safe, { includeEmail: true }));
+  res.json(mapUser(row, { includeEmail: true }));
 }));
 
 router.post('/refresh', auth, asyncHandler(async (req, res) => {
@@ -187,8 +382,7 @@ router.post('/refresh', auth, asyncHandler(async (req, res) => {
   }
   const token = generateToken(row);
   res.cookie(TOKEN_COOKIE, token, authCookieOpts());
-  const { password: _p, ...safe } = row;
-  res.json(mapUser(safe, { includeEmail: true }));
+  res.json(mapUser(row, { includeEmail: true }));
 }));
 
 module.exports = router;
