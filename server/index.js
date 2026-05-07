@@ -51,9 +51,21 @@ const io = socketIo(server, {
 
 app.set('io', io);
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 const helmetOpts = {
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  permissionsPolicy: {
+    directives: {
+      camera: [],
+      microphone: [],
+      geolocation: [],
+      'interest-cohort': [],
+    },
+  },
 };
+
 if (process.env.NODE_ENV === 'production') {
   helmetOpts.hsts = {
     maxAge: 15552000,
@@ -61,6 +73,38 @@ if (process.env.NODE_ENV === 'production') {
     preload: false,
   };
 }
+
+// CSP -- more permissive in dev (eval sourcemaps, local ws), stricter in prod
+helmetOpts.contentSecurityPolicy = {
+  useDefaults: false,
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: [
+      "'self'",
+      "'unsafe-inline'",
+      ...(isDev ? ["'unsafe-eval'"] : []),
+      'https://accounts.google.com',
+    ],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    imgSrc: [
+      "'self'",
+      'data:',
+      'blob:',
+      'https://res.cloudinary.com',
+      'https://images.unsplash.com',
+    ],
+    connectSrc: [
+      "'self'",
+      ...(isDev ? ['ws://localhost:*', 'http://localhost:*'] : []),
+    ],
+    fontSrc: ["'self'", 'data:'],
+    frameSrc: ['https://accounts.google.com'],
+    objectSrc: ["'none'"],
+    formAction: ["'self'"],
+    frameAncestors: ["'none'"],
+    baseUri: ["'self'"],
+  },
+};
 app.use(helmet(helmetOpts));
 app.use(requestLogger);
 app.use(cookieParser());
