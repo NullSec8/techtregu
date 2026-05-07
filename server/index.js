@@ -8,8 +8,6 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const socketIo = require('socket.io');
 const path = require('path');
-const passport = require('passport');
-const session = require('express-session');
 const { ensureDatabase } = require('./database/bootstrap');
 const { initSchema } = require('./database/initSchema');
 const { pool } = require('./database/pool');
@@ -110,59 +108,8 @@ app.use(requestLogger);
 app.use(cookieParser());
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  const GoogleStrategy = require('passport-google-oauth20').Strategy;
-  
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
-  }, async (accessToken, refreshToken, profile, done) => {
-    try {
-      const email = profile.emails?.[0]?.value;
-      if (!email) return done(new Error('No email'));
-      
-      const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-      if (rows[0]) return done(null, rows[0]);
-      
-      const username = profile.displayName || email.split('@')[0];
-      const [result] = await pool.query(
-        `INSERT INTO users (username, email, password, first_name, last_name, avatar, is_verified)
-         VALUES (?, ?, 'google_oauth', ?, ?, ?, 1)`,
-        [username, email, profile.name?.givenName || '', profile.name?.familyName || '', profile.photos?.[0]?.value || '']
-      );
-      
-      const [newUser] = await pool.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
-      return done(null, newUser[0]);
-    } catch (err) {
-      return done(err);
-    }
-  }));
-  
-  passport.serializeUser((user, done) => done(null, user.id));
-  passport.deserializeUser(async (id, done) => {
-    try {
-      const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-      done(null, rows[0]);
-    } catch (err) {
-      done(err);
-    }
-  });
-  
-  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
-  log('fatal', 'session_secret_required', { hint: 'SESSION_SECRET must be set in production.' });
-  process.exit(1);
-}
-
-app.use(session({
-  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET + '_fallback',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 60000 },
-}));
-  app.use(passport.initialize());
-  app.use(passport.session());
-  
-  log('info', 'google_auth_configured');
+  const { setupGoogleAuth } = require('./middleware/googleAuth');
+  setupGoogleAuth(app, pool);
 }
 
 app.use(

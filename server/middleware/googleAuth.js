@@ -1,10 +1,10 @@
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
-const userRepository = require('../database/userRepository');
-const { mapUser } = require('../database/mappers');
+const session = require('express-session');
+const { log } = require('../logger');
 
-function setupGoogleAuth(passportInstance, pool) {
+function setupGoogleAuth(app, pool) {
   const googleClientID = process.env.GOOGLE_CLIENT_ID;
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const googleCallbackURL = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
@@ -15,12 +15,27 @@ function setupGoogleAuth(passportInstance, pool) {
     return;
   }
 
+  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+    log('fatal', 'session_secret_required', { hint: 'SESSION_SECRET must be set in production.' });
+    process.exit(1);
+  }
+
+  app.use(session({
+    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET + '_fallback',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 60000 },
+  }));
+
+  app.use(passport.initialize());
+  app.use(passport.session());
+
   async function findOrCreateUser(profile) {
     const email = profile.emails?.[0]?.value;
     if (!email) throw new Error('No email from Google');
 
-    let [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    
+    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+
     if (rows[0]) {
       return rows[0];
     }
@@ -36,7 +51,7 @@ function setupGoogleAuth(passportInstance, pool) {
       [username, email, firstName, lastName, avatar]
     );
 
-    return { id: result.insertId, username, email, first_name: firstName, last_name: lastName, avatar, is_verified: 1 };
+    return { id: result.insertId, username, email, first_name: firstName, last_name: lastName, avatar, is_verified: 1, is_admin: 0 };
   }
 
   const strategy = new GoogleStrategy(
@@ -55,13 +70,13 @@ function setupGoogleAuth(passportInstance, pool) {
     }
   );
 
-  passportInstance.use(strategy);
+  passport.use(strategy);
 
-  passportInstance.serializeUser((user, done) => {
+  passport.serializeUser((user, done) => {
     done(null, user.id);
   });
 
-  passportInstance.deserializeUser(async (id, done) => {
+  passport.deserializeUser(async (id, done) => {
     try {
       const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
       done(null, rows[0] || null);
@@ -69,6 +84,8 @@ function setupGoogleAuth(passportInstance, pool) {
       done(err, null);
     }
   });
+
+  log('info', 'google_auth_configured');
 
   return {
     generateToken: (user) => {

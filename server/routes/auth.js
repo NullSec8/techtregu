@@ -7,7 +7,6 @@ const { body, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const userRepository = require('../database/userRepository');
 const { mapUser } = require('../database/mappers');
-const { pool } = require('../database/pool');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { logAudit } = require('../database/auditRepository');
 const { sendMail, buildWelcomeEmail } = require('../utils/emailService');
@@ -290,7 +289,7 @@ router.post('/login', asyncHandler(async (req, res) => {
   if (!user) {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
-  
+
   if (user.password === 'google_oauth') {
     return res.status(401).json({ message: 'This account uses Google login. Sign in with Google instead.' });
   }
@@ -324,31 +323,9 @@ router.get(
   passport.authenticate('google', { session: false }),
   asyncHandler(async (req, res) => {
     try {
-      const googleUser = req.user;
-      const email = googleUser?.emails?.[0]?.value || googleUser?.email;
-      
-      if (!email) {
-        return res.redirect('/?error=google_no_email');
-      }
-
-      const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-      
-      let user = rows[0];
-      
+      const user = req.user;
       if (!user) {
-        const username = googleUser.displayName || email.split('@')[0];
-        const name = googleUser.name || {};
-        const firstName = name.givenName || '';
-        const lastName = name.familyName || '';
-        const avatar = googleUser.photos?.[0]?.value || '';
-
-        const [result] = await pool.query(
-          `INSERT INTO users (username, email, password, first_name, last_name, avatar, is_verified)
-           VALUES (?, ?, 'google_oauth', ?, ?, ?, 1)`,
-          [username, email, firstName, lastName, avatar]
-        );
-
-        user = { id: result.insertId, is_admin: 0 };
+        return res.redirect('/?error=google_auth_failed');
       }
 
       await userRepository.updateLastLogin(user.id);
