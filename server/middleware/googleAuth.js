@@ -51,7 +51,7 @@ function setupGoogleAuth(app, pool) {
       [username, email, firstName, lastName, avatar]
     );
 
-    return { id: result.insertId, username, email, first_name: firstName, last_name: lastName, avatar, is_verified: 1, is_admin: 0 };
+    return { id: result.insertId, username, email, first_name: firstName, last_name: lastName, avatar, is_verified: 1, is_admin: 0, token_version: 0 };
   }
 
   const strategy = new GoogleStrategy(
@@ -90,7 +90,7 @@ function setupGoogleAuth(app, pool) {
   return {
     generateToken: (user) => {
       return jwt.sign(
-        { user: { id: user.id, isAdmin: user.is_admin } },
+        { user: { id: user.id, isAdmin: user.is_admin, tokenVersion: user.token_version ?? 0 } },
         jwtSecret,
         { expiresIn: '7d' }
       );

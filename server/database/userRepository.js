@@ -1,7 +1,7 @@
 const { pool } = require('./pool');
 async function findById(id) {
   const [rows] = await pool.query(
-    'SELECT id, username, email, password, first_name, last_name, phone, location, avatar, is_admin, is_verified, created_at, last_login FROM users WHERE id = ?',
+    'SELECT id, username, email, password, first_name, last_name, phone, location, avatar, is_admin, is_verified, token_version, created_at, last_login FROM users WHERE id = ?',
     [id]
   );
   return rows[0] || null;
@@ -9,7 +9,7 @@ async function findById(id) {
 
 async function findByEmail(email) {
   const [rows] = await pool.query(
-    'SELECT id, username, email, password, first_name, last_name, phone, location, avatar, is_admin, is_verified, created_at, last_login, login_attempts, locked_until FROM users WHERE email = ?',
+    'SELECT id, username, email, password, first_name, last_name, phone, location, avatar, is_admin, is_verified, token_version, created_at, last_login, login_attempts, locked_until FROM users WHERE email = ?',
     [email]
   );
   return rows[0] || null;
@@ -17,7 +17,7 @@ async function findByEmail(email) {
 
 async function findByUsername(username) {
   const [rows] = await pool.query(
-    'SELECT id, username, email, password, first_name, last_name, phone, location, avatar, is_admin, is_verified, created_at, last_login FROM users WHERE username = ?',
+    'SELECT id, username, email, password, first_name, last_name, phone, location, avatar, is_admin, is_verified, token_version, created_at, last_login FROM users WHERE username = ?',
     [username]
   );
   return rows[0] || null;
@@ -115,6 +115,21 @@ async function isAccountLocked(userId) {
   return rows.length > 0;
 }
 
+async function getTokenVersion(userId) {
+  const [rows] = await pool.query(
+    'SELECT token_version FROM users WHERE id = ?',
+    [userId]
+  );
+  return rows[0] ? rows[0].token_version : null;
+}
+
+async function incrementTokenVersion(userId) {
+  await pool.query(
+    'UPDATE users SET token_version = token_version + 1 WHERE id = ?',
+    [userId]
+  );
+}
+
 module.exports = {
   findById,
   findByEmail,
@@ -129,4 +144,6 @@ module.exports = {
   incrementLoginAttempts,
   resetLoginAttempts,
   isAccountLocked,
+  getTokenVersion,
+  incrementTokenVersion,
 };

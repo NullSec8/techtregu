@@ -246,6 +246,7 @@ function generateToken(user) {
         isVerified: !!(user.isVerified ?? user.is_verified),
         createdAt: user.createdAt ?? user.created_at ?? null,
         lastLogin: user.lastLogin ?? user.last_login ?? null,
+        tokenVersion: user.token_version ?? user.tokenVersion ?? 0,
       },
     },
     process.env.JWT_SECRET,
@@ -329,6 +330,7 @@ router.post(
       last_name: lastName,
       avatar: null,
       is_verified: 0,
+      token_version: 0,
     });
     res.cookie(TOKEN_COOKIE, token, authCookieOpts());
     res.status(201).json({ id: userId, username, email, firstName, lastName });
@@ -427,7 +429,10 @@ router.get('/me', auth, asyncHandler(async (req, res) => {
 router.post('/refresh', authLimiter, auth, asyncHandler(async (req, res) => {
   const payload = userFromToken(req);
   if (payload && payload.username) {
-    const token = generateToken(payload);
+    // Rotate token version
+    await userRepository.incrementTokenVersion(req.user.id);
+    const newVersion = await userRepository.getTokenVersion(req.user.id);
+    const token = generateToken({ ...payload, token_version: newVersion });
     res.cookie(TOKEN_COOKIE, token, authCookieOpts());
     return res.json(userToJson(payload));
   }
@@ -436,7 +441,10 @@ router.post('/refresh', authLimiter, auth, asyncHandler(async (req, res) => {
   if (!row) {
     return res.status(401).json({ message: 'User not found' });
   }
-  const token = generateToken(row);
+  // Rotate token version
+  await userRepository.incrementTokenVersion(req.user.id);
+  const newVersion = await userRepository.getTokenVersion(req.user.id);
+  const token = generateToken({ ...row, token_version: newVersion });
   res.cookie(TOKEN_COOKIE, token, authCookieOpts());
   res.json(mapUser(row, { includeEmail: true }));
 }));

@@ -141,6 +141,9 @@ const STATEMENTS = [
   // Account lockout columns
   `ALTER TABLE users ADD COLUMN login_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0`,
   `ALTER TABLE users ADD COLUMN locked_until TIMESTAMP NULL DEFAULT NULL`,
+
+  // Token rotation
+  `ALTER TABLE users ADD COLUMN token_version INT UNSIGNED NOT NULL DEFAULT 0`,
 ];
 
 async function initSchema(pool = require('./pool').pool) {
