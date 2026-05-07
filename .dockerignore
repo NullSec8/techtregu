@@ -1,0 +1,10 @@
+node_modules
+.git
+.gitignore
+.env
+coverage
+dist
+nohup.out
+*.log
+uploads/*
+!uploads/.gitkeep
