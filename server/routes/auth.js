@@ -46,7 +46,7 @@ router.post(
   [
     body('username').isLength({ min: 3, max: 32 }).trim().escape(),
     body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 6 }).matches(/^(?=.*[a-zA-Z])/i),
+    body('password').isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/),
     body('firstName').isLength({ min: 1, max: 120 }).trim().escape(),
     body('lastName').isLength({ min: 1, max: 120 }).trim().escape(),
   ],

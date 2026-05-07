@@ -5,8 +5,12 @@ export const validators = {
 
   minLength: (len, msg) => ({
     minLength: {
-      value: len,
-      message: msg || `Must be at least ${len} characters`,
+      value: 8,
+      message: msg,
+    },
+    pattern: {
+      value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      message: msg,
     },
   }),
 
@@ -24,9 +28,13 @@ export const validators = {
     },
   }),
 
-  password: (msg = 'Password must be at least 8 characters') => ({
+  password: (msg = 'Password must be at least 8 characters with uppercase, lowercase, and a digit') => ({
     minLength: {
       value: 8,
+      message: msg,
+    },
+    pattern: {
+      value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       message: msg,
     },
   }),
