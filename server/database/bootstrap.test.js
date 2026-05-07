@@ -95,8 +95,8 @@ describe('initSchema', () => {
 
     await initSchema(mockPool);
 
-    // STATEMENTS contains 18 items: 9 CREATE TABLE + 9 CREATE INDEX
-    expect(mockQuery).toHaveBeenCalledTimes(18);
+    // STATEMENTS contains 20 items: 9 CREATE TABLE + 9 CREATE INDEX + 2 ALTER TABLE
+    expect(mockQuery).toHaveBeenCalledTimes(20);
   });
 
   it('ignores duplicate key name errors', async () => {
@@ -162,6 +162,6 @@ describe('initSchema', () => {
 
     await initSchema(mockPool);
 
-    expect(mockQuery).toHaveBeenCalledTimes(18);
+    expect(mockQuery).toHaveBeenCalledTimes(20);
   });
 });

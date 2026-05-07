@@ -9,7 +9,7 @@ async function findById(id) {
 
 async function findByEmail(email) {
   const [rows] = await pool.query(
-    'SELECT id, username, email, password, first_name, last_name, phone, location, avatar, is_admin, is_verified, created_at, last_login FROM users WHERE email = ?',
+    'SELECT id, username, email, password, first_name, last_name, phone, location, avatar, is_admin, is_verified, created_at, last_login, login_attempts, locked_until FROM users WHERE email = ?',
     [email]
   );
   return rows[0] || null;
@@ -90,6 +90,31 @@ async function updatePassword(id, password) {
   await pool.query('UPDATE users SET password = ? WHERE id = ?', [password, id]);
 }
 
+async function incrementLoginAttempts(userId) {
+  await pool.query(
+    `UPDATE users
+     SET login_attempts = login_attempts + 1,
+         locked_until = IF(login_attempts = 9, DATE_ADD(NOW(), INTERVAL 30 MINUTE), locked_until)
+     WHERE id = ?`,
+    [userId]
+  );
+}
+
+async function resetLoginAttempts(userId) {
+  await pool.query(
+    'UPDATE users SET login_attempts = 0, locked_until = NULL WHERE id = ?',
+    [userId]
+  );
+}
+
+async function isAccountLocked(userId) {
+  const [rows] = await pool.query(
+    'SELECT id FROM users WHERE id = ? AND locked_until IS NOT NULL AND locked_until > NOW()',
+    [userId]
+  );
+  return rows.length > 0;
+}
+
 module.exports = {
   findById,
   findByEmail,
@@ -101,4 +126,7 @@ module.exports = {
   setPasswordReset,
   clearPasswordReset,
   updatePassword,
+  incrementLoginAttempts,
+  resetLoginAttempts,
+  isAccountLocked,
 };

@@ -290,15 +290,23 @@ router.post('/login', asyncHandler(async (req, res) => {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
 
+  // Check if account is locked due to too many failed attempts
+  const locked = await userRepository.isAccountLocked(user.id);
+  if (locked) {
+    return res.status(423).json({ message: 'Account temporarily locked. Try again later.' });
+  }
+
   if (user.password === 'google_oauth') {
     return res.status(401).json({ message: 'This account uses Google login. Sign in with Google instead.' });
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
+    await userRepository.incrementLoginAttempts(user.id);
     return res.status(401).json({ message: 'Invalid credentials' });
   }
 
+  await userRepository.resetLoginAttempts(user.id);
   await userRepository.updateLastLogin(user.id);
   await logAudit(user.id, 'auth.login', null, null, req);
 

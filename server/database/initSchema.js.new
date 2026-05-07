@@ -24,7 +24,7 @@ const STATEMENTS = [
     description TEXT NOT NULL,
     price DECIMAL(12,2) NOT NULL,
     category ENUM('laptop','desktop','gpu','cpu','ram','storage','monitor','peripheral','other') NOT NULL,
-    \`condition\` ENUM('new','used','refurbished') NOT NULL,
+    ` + "`condition`" + ` ENUM('new','used','refurbished') NOT NULL,
     images JSON DEFAULT NULL,
     location VARCHAR(255) NOT NULL,
     seller_id INT UNSIGNED NOT NULL,
