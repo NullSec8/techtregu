@@ -5,6 +5,7 @@ import { useI18n } from '../context/I18nProvider';
 
 const MAX_DIMENSION = 1920;
 const JPEG_QUALITY = 0.82;
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB — must match server
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
 
 function compressImage(file) {
@@ -143,6 +144,7 @@ export function ImageUploader({ value = [], onChange, maxFiles = 8, token }) {
   const [dragOver, setDragOver] = useState(false);
   const [editing, setEditing] = useState(null); // { idx, preview, file }
   const [dragIdx, setDragIdx] = useState(null);
+  const [validationError, setValidationError] = useState(null);
   const fileRef = useRef(null);
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -154,7 +156,16 @@ export function ImageUploader({ value = [], onChange, maxFiles = 8, token }) {
     const remaining = maxFiles - current.length;
     if (remaining <= 0) return;
 
-    const selected = [...files].slice(0, remaining).filter((f) => ACCEPTED_TYPES.includes(f.type));
+    // reject files that exceed the server's 2MB limit
+    const oversized = [...files].filter((f) => f.size > MAX_FILE_SIZE);
+    const sizedOk = [...files].filter((f) => f.size <= MAX_FILE_SIZE);
+    if (oversized.length > 0) {
+      setValidationError(`File too large. Maximum size is 2MB.`);
+    } else {
+      setValidationError(null);
+    }
+
+    const selected = sizedOk.slice(0, remaining).filter((f) => ACCEPTED_TYPES.includes(f.type));
     if (!selected.length) return;
 
     const newItems = [];
@@ -196,7 +207,7 @@ export function ImageUploader({ value = [], onChange, maxFiles = 8, token }) {
     e.preventDefault();
     setDragOver(false);
     addFiles(e.dataTransfer.files);
-  }, []);
+  }, [addFiles]);
 
   const onDragOver = useCallback((e) => {
     e.preventDefault();
@@ -269,19 +280,6 @@ export function ImageUploader({ value = [], onChange, maxFiles = 8, token }) {
     }
   }
 
-  /* ── extract URLs for listing submit ────────────────────────────── */
-
-  // Expose a getter so parent can extract uploaded URLs
-  const getUrls = useCallback(() => {
-    return valueRef.current
-      .map((e) => (typeof e === 'string' ? e : e.url))
-      .filter(Boolean);
-  }, []);
-
-  const getPreviews = useCallback(() => {
-    return valueRef.current.map((e) => (typeof e === 'string' ? e : e.preview));
-  }, []);
-
   /* ── render ─────────────────────────────────────────────────────── */
 
   return (
@@ -313,6 +311,22 @@ export function ImageUploader({ value = [], onChange, maxFiles = 8, token }) {
           onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
         />
       </div>
+
+      {/* validation error */}
+      {validationError && (
+        <div className="upload-validation-error" role="alert">
+          <span className="upload-validation-error-icon" aria-hidden="true">!</span>
+          <span>{validationError}</span>
+          <button
+            type="button"
+            className="upload-validation-error-dismiss"
+            onClick={() => setValidationError(null)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* preview grid */}
       {value.length > 0 && (
