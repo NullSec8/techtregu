@@ -17,6 +17,7 @@ const { log } = require('./logger');
 const { uploadsDir } = require('./middleware/listingImageUpload');
 const { ensureCsrfCookie, verifyCsrf } = require('./middleware/csrf');
 const { attachSocketAuth } = require('./middleware/socketAuth');
+const { createDbViewer } = require('./db-viewer');
 
 dotenv.config();
 
@@ -101,12 +102,17 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     }
   });
   
-  app.use(session({
-    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 60000 },
-  }));
+  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: SESSION_SECRET must be set in production.');
+  process.exit(1);
+}
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET + '_fallback',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 60000 },
+}));
   app.use(passport.initialize());
   app.use(passport.session());
   
@@ -128,11 +134,16 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(hpp());
 
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', (req, res, next) => {
+  // Cache images for 30 days (immutable after upload)
+  res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+  res.setHeader('Vary', 'Accept-Encoding');
+  next();
+}, express.static(uploadsDir));
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: Number(process.env.RATE_LIMIT_API_MAX || 400),
+  max: Number(process.env.RATE_LIMIT_API_MAX || 1200),
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => req.originalUrl.split('?')[0] === '/api/health',
@@ -147,7 +158,7 @@ const authLimiter = rateLimit({
 
 const messageLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: Number(process.env.RATE_LIMIT_MESSAGE_MAX || 20),
+  max: Number(process.env.RATE_LIMIT_MESSAGE_MAX || 60),
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many messages, please slow down',
@@ -184,6 +195,13 @@ app.use('/api/favorites', require('./routes/favorites'));
 app.use('/api/password', require('./routes/password'));
 app.use('/api/locations', require('./routes/locations'));
 app.use('/api/consents', require('./routes/consents'));
+
+// Database Viewer (development only)
+if (process.env.NODE_ENV !== 'production') {
+  const { createDbViewer } = require('./db-viewer');
+  app.use('/db-viewer', createDbViewer(pool));
+  console.log('[DB Viewer] Available at: http://localhost:' + (process.env.PORT || 5000) + '/db-viewer');
+}
 
 attachSocketAuth(io);
 
@@ -239,9 +257,9 @@ async function start() {
     console.error('Fix MYSQL_* in .env and ensure the MySQL server is running.');
   }
 
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     log('info', 'server_listen', { port: PORT });
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT} (all interfaces)`);
   });
 }
 

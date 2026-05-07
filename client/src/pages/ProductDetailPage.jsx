@@ -19,12 +19,14 @@ import {
   getSpecFieldDefs,
   initSpecStateForCategory,
 } from '../utils/specTemplates';
+import { useI18n } from '../context/I18nProvider';
 
 export function ProductDetailPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -58,6 +60,7 @@ export function ProductDetailPage() {
     specState: {},
   });
   const [imageUploading, setImageUploading] = useState(false);
+  const [editImageEntries, setEditImageEntries] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,22 +87,37 @@ export function ProductDetailPage() {
           images: Array.isArray(normalized.images) ? [...normalized.images] : [],
           specState: initSpecStateForCategory(normalized.category || 'other', normalized.specs || {}),
         });
+        setEditImageEntries(
+          (Array.isArray(normalized.images) ? normalized.images : []).map((url) => ({
+            id: Math.random().toString(36).slice(2),
+            url,
+            preview: url,
+            file: null,
+            progress: 100,
+            done: true,
+            error: null,
+          }))
+        );
 
         try {
           const rawRecent = localStorage.getItem('tt_recently_viewed');
           const parsed = rawRecent ? JSON.parse(rawRecent) : [];
           const next = [String(id), ...parsed.filter((x) => String(x) !== String(id))].slice(0, 20);
           localStorage.setItem('tt_recently_viewed', JSON.stringify(next));
-        } catch {}
+        } catch {
+          // ignore
+        }
 
         try {
           const rawWatchlist = localStorage.getItem('tt_favorites');
           const parsedWatchlist = rawWatchlist ? JSON.parse(rawWatchlist) : [];
           setIsWatchlisted(parsedWatchlist.includes(normalized.id));
-        } catch {}
+        } catch {
+          // ignore
+        }
       } catch (e) {
         if (!cancelled) {
-          setError(e.response?.status === 404 ? 'Listing not found.' : (e.message || 'Failed to load.'));
+          setError(e.response?.status === 404 ? t('listingNotFound') : (e.message || t('error')));
           setProduct(null);
         }
       } finally {
@@ -190,15 +208,15 @@ export function ProductDetailPage() {
     return (
       <div className="page-detail">
         <Link to="/" className="btn btn-back">
-          ← Back to listings
+          ← {t('backToListings')}
         </Link>
         <div className="empty-state empty-state-inline">
           <div className="empty-icon">⚠️</div>
-          <h2 className="empty-title">{error || 'Listing not found'}</h2>
-          <p>This item may have been removed or the link is incorrect.</p>
+          <h2 className="empty-title">{error || t('listingNotFound')}</h2>
+          <p>{t('itemRemoved')}</p>
           <p className="empty-actions">
             <Link to="/" className="btn btn-primary">
-              Browse listings
+              {t('browseListings')}
             </Link>
           </p>
         </div>
@@ -218,16 +236,16 @@ export function ProductDetailPage() {
   const cond = CONDITION_LABEL[product.condition] || product.condition;
   const specRows = specsEntries(product.specs);
 
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
   async function handleDeleteListing() {
     if (!canManage || deleting) return;
-    const confirmed = window.confirm('Delete this listing? This cannot be undone.');
-    if (!confirmed) return;
     setDeleting(true);
     try {
       await api.delete(`/listings/${product.id}`);
       navigate('/', { replace: true });
     } catch (e) {
-      setError(e.response?.data?.message || e.message || 'Failed to delete listing.');
+      setError(e.response?.data?.message || e.message || t('error'));
     } finally {
       setDeleting(false);
     }
@@ -246,7 +264,7 @@ export function ProductDetailPage() {
       const urls = data.urls || [];
       setForm((f) => ({ ...f, images: [...(f.images || []), ...urls] }));
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Image upload failed.');
+      setError(err.response?.data?.message || err.message || t('error'));
     } finally {
       setImageUploading(false);
     }
@@ -260,9 +278,12 @@ export function ProductDetailPage() {
     try {
       const price = Number.parseFloat(form.price);
       if (Number.isNaN(price) || price < 0) {
-        throw new Error('Please enter a valid price.');
+        throw new Error(t('invalidPrice'));
       }
-      const imgs = (form.images || []).map((u) => String(u).trim()).filter(Boolean);
+      const imgs = editImageEntries
+        .filter((e) => e.done && !e.error)
+        .map((e) => e.url || e.preview)
+        .filter(Boolean);
       const specPayload = buildSpecsPayload(form.category, form.specState || {});
       const payload = {
         title: form.title.trim(),
@@ -279,7 +300,7 @@ export function ProductDetailPage() {
       setProduct(normalized);
       setEditOpen(false);
     } catch (e) {
-      setError(e.response?.data?.message || e.message || 'Failed to update listing.');
+      setError(e.response?.data?.message || e.message || t('error'));
     } finally {
       setUpdating(false);
     }
@@ -295,12 +316,11 @@ export function ProductDetailPage() {
       setReportOpen(false);
       setReportReason('');
     } catch (e) {
-      setError(e.response?.data?.message || e.message || 'Failed to send report.');
+      setError(e.response?.data?.message || e.message || t('error'));
     } finally {
       setReporting(false);
     }
   }
-
   function toggleWatchlist() {
     try {
       const raw = localStorage.getItem('tt_favorites');
@@ -375,28 +395,28 @@ export function ProductDetailPage() {
   return (
     <div className="page-detail">
       <Breadcrumbs
-        items={[{ label: 'Home', href: '/' }, { label: product.title }]}
+        items={[{ label: t('home'), href: '/' }, { label: product.title }]}
       />
       <Link to="/" className="btn btn-back">
-        ← Back to listings
+        ← {t('backToListings')}
       </Link>
 
       <div className="detail-grid">
         <div className="detail-img">
           {product.images && product.images.length > 0 ? (
             <>
-              <div className="detail-img-main" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
+              <div className="detail-img-main" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') { setLightboxIndex(0); setLightboxOpen(true); } }}>
                 <img src={product.images[0]} alt={product.title} decoding="async" />
               </div>
               {product.images.length > 1 && (
                 <div className="detail-img-thumbnails">
                   {product.images.slice(1, 5).map((img, i) => (
-                    <div key={i} className="detail-img-thumb" onClick={() => { setLightboxIndex(i + 1); setLightboxOpen(true); }}>
-                      <img src={img} alt={`${product.title} ${i + 2}`} />
+                    <div key={i} className="detail-img-thumb" onClick={() => { setLightboxIndex(i + 1); setLightboxOpen(true); }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') { setLightboxIndex(i + 1); setLightboxOpen(true); } }} aria-label={`View image ${i + 2} of ${product.images.length}`}>
+                      <img src={img} alt={`Image ${i + 2}: ${product.title}`} />
                     </div>
                   ))}
                   {product.images.length > 5 && (
-                    <div className="detail-img-more" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
+                    <div className="detail-img-more" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') { setLightboxIndex(0); setLightboxOpen(true); } }} aria-label={`View all ${product.images.length} images`}>
                       +{product.images.length - 5} more
                     </div>
                   )}
@@ -422,80 +442,90 @@ export function ProductDetailPage() {
           {canManage && (
             <div className="listing-owner-tools">
               <button type="button" className="btn" onClick={() => setEditOpen((v) => !v)}>
-                {editOpen ? 'Close edit' : 'Edit listing'}
+                {editOpen ? t('closeEdit') : t('editListingBtn')}
               </button>
-              <button type="button" className="btn btn-danger" onClick={handleDeleteListing} disabled={deleting}>
-                {deleting ? 'Deleting…' : 'Delete listing'}
-              </button>
+              {!confirmDeleteOpen ? (
+                <button type="button" className="btn btn-danger" onClick={() => setConfirmDeleteOpen(true)} disabled={deleting}>
+                  {deleting ? t('deleting') : t('deleteListingBtn')}
+                </button>
+              ) : (
+                <div className="delete-confirm" role="alertdialog" aria-modal="true" aria-label={t('deleteListingBtn')}>
+                  <p>{t('deleteConfirm')}</p>
+                  <div className="form-actions">
+                    <button type="button" className="btn btn-danger" onClick={handleDeleteListing} disabled={deleting}>
+                      {deleting ? t('deleting') : t('yesDelete')}
+                    </button>
+                    <button type="button" className="btn" onClick={() => setConfirmDeleteOpen(false)} disabled={deleting}>
+                      {t('cancel')}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           <div className="seller-box">
-            <div className="seller-row">
-              <div className="seller-avatar">{sellerInitials}</div>
-              <div>
-                <div className="seller-name">@{seller?.username || 'seller'}</div>
-                <div className="seller-label">{sellerName}</div>
+            <div className="seller-info">
+              <div className="seller-row">
+                <div className="seller-avatar">{sellerInitials}</div>
+                <div>
+                  <div className="seller-name">@{seller?.username || 'seller'}</div>
+                  <div className="seller-label">{sellerName}</div>
+                </div>
               </div>
+              <p className="seller-rating">
+                {sellerRating?.averageRating != null
+                  ? `${stars(sellerRating.averageRating)} ${sellerRating.averageRating.toFixed(1)} (${sellerRating.totalReviews || 0} ${t('reviews')})`
+                  : t('noReviews')}
+              </p>
             </div>
-            <div className="btn-group">
-              {seller?.id != null && (
-                <Link to={`/profile/${encodeURIComponent(seller.username || seller.id)}`} className="btn">
-                  View profile
+            
+            {!canManage && seller?.id ? (
+              <div className="listing-actions">
+                <Link to={`/messages?user=${seller.id}&listing=${product.id}`} className="btn btn-primary btn-lg">
+                  {t('buyNow')} · €{Number(product.price).toLocaleString()}
                 </Link>
-              )}
-              {user?.id && seller?.id && Number(user.id) !== Number(seller.id) ? (
-                <Link to={`/messages?user=${seller.id}&listing=${product.id}`} className="btn btn-primary">
-                  Message seller
-                </Link>
-              ) : (
-                <button type="button" className="btn btn-primary" onClick={handleContactSeller}>
-                  Email seller
-                </button>
-              )}
-              {!canManage ? (
-                <>
-                  <button type="button" className="btn" onClick={toggleWatchlist}>
-                    {isWatchlisted ? '★ Watchlisted' : '☆ Watchlist'}
+                <div className="listing-actions-row">
+                  <button type="button" className="btn btn-secondary" onClick={toggleWatchlist}>
+                    {isWatchlisted ? `★ ${t('saved')}` : `☆ ${t('saveItem')}`}
                   </button>
-                  {user && seller?.id ? (
-                    <>
-                      <button type="button" className="btn btn-primary" onClick={() => setOfferOpen((v) => !v)}>
-                        {offerOpen ? 'Close Offer' : 'Make Offer'}
-                      </button>
-                      <Link to={`/messages?user=${seller.id}&listing=${product.id}`} className="btn">
-                        Buy It Now
-                      </Link>
-                    </>
-                  ) : (
-                    <Link to="/login" className="btn btn-primary">
-                      Sign in to offer
-                    </Link>
-                  )}
-                </>
-              ) : null}
-              {user && !canManage ? (
-                <button type="button" className="btn btn-danger-ghost" onClick={() => setReportOpen((v) => !v)}>
-                  {reportOpen ? 'Cancel report' : 'Report listing'}
-                </button>
-              ) : null}
-            </div>
-            <p className="seller-rating-placeholder">
-              Seller rating:{' '}
-              {(!sellerRating || sellerRating.averageRating == null)
-                ? 'No ratings yet'
-                : `${stars(sellerRating.averageRating)} ${sellerRating.averageRating?.toFixed(1)} (${sellerRating.totalReviews || 0})`}
-            </p>
-            {user && !canManage ? (
-              <button type="button" className="btn" onClick={() => setRatingOpen((v) => !v)}>
-                {ratingOpen ? 'Cancel rating' : 'Rate seller'}
-              </button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setOfferOpen((v) => !v)}>
+                    {offerOpen ? t('cancel') : t('makeOffer')}
+                  </button>
+                  <Link to={`/profile/${encodeURIComponent(seller.username || seller.id)}`} className="btn btn-secondary">
+                    {t('profileBtn')}
+                  </Link>
+                </div>
+              </div>
+            ) : !canManage ? (
+              <div className="listing-actions">
+                <Link to="/login" className="btn btn-primary btn-lg">
+                  {t('signInToContact')}
+                </Link>
+              </div>
             ) : null}
+
+            <div className="listing-secondary">
+              <button type="button" className="btn btn-ghost" onClick={handleContactSeller}>
+                📧 {t('emailSeller')}
+              </button>
+              {user && !canManage && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRatingOpen((v) => !v)}>
+                  {ratingOpen ? t('cancel') : t('rateSeller')}
+                </button>
+              )}
+              {user && !canManage && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setReportOpen((v) => !v)}>
+                  {reportOpen ? t('cancel') : t('report')}
+                </button>
+              )}
+            </div>
+
             {ratingOpen && user && (
               <form className="report-form" onSubmit={handleSubmitRating}>
                 <div className="form-row">
                   <label className="form-field">
-                    <span>Rating</span>
+                    <span>{t('rating')}</span>
                     <select value={ratingValue} onChange={(e) => setRatingValue(e.target.value)}>
                       <option value="5">★★★★★ (5)</option>
                       <option value="4">★★★★☆ (4)</option>
@@ -506,18 +536,18 @@ export function ProductDetailPage() {
                   </label>
                 </div>
                 <label className="form-field">
-                  <span>Comment (optional)</span>
+                  <span>{t('commentOptional')}</span>
                   <textarea
                     rows={3}
                     value={ratingComment}
                     onChange={(e) => setRatingComment(e.target.value)}
                     maxLength={1000}
-                    placeholder="Describe your buying experience..."
+                    placeholder={t('comment') + '...'}
                   />
                 </label>
                 <div className="form-actions">
                   <button type="submit" className="btn btn-primary" disabled={ratingSaving}>
-                    {ratingSaving ? 'Saving…' : 'Submit rating'}
+                    {ratingSaving ? t('saving') : t('submitRating')}
                   </button>
                 </div>
               </form>
@@ -537,7 +567,7 @@ export function ProductDetailPage() {
             {offerOpen && user && (
               <form className="report-form" onSubmit={handleMakeOffer}>
                 <label className="form-field">
-                  <span>Your offer (EUR)</span>
+                  <span>{t('yourOffer')}</span>
                   <input
                     type="number"
                     step="0.01"
@@ -548,18 +578,18 @@ export function ProductDetailPage() {
                   />
                 </label>
                 <label className="form-field">
-                  <span>Note to seller (optional)</span>
+                  <span>{t('noteToSeller')}</span>
                   <textarea
                     rows={3}
                     maxLength={500}
                     value={offerNote}
                     onChange={(e) => setOfferNote(e.target.value)}
-                    placeholder="Pickup details, timeline, or condition questions..."
+                    placeholder={t('pickupDetails') || 'Pickup details, timeline, or condition questions...'}
                   />
                 </label>
                 <div className="form-actions">
                   <button type="submit" className="btn btn-primary" disabled={offerSending}>
-                    {offerSending ? 'Sending offer…' : 'Send Offer'}
+                    {offerSending ? t('sendingOffer') : t('sendOffer')}
                   </button>
                 </div>
               </form>
@@ -567,19 +597,19 @@ export function ProductDetailPage() {
             {reportOpen && (
               <form className="report-form" onSubmit={handleReportListing}>
                 <label className="form-field">
-                  <span>Why are you reporting this listing?</span>
+                  <span>{t('reportReason')}</span>
                   <textarea
                     rows={3}
                     minLength={8}
                     value={reportReason}
                     onChange={(e) => setReportReason(e.target.value)}
-                    placeholder="Spam, misleading info, suspicious behavior, etc."
+                    placeholder={t('reportHint') || 'Spam, misleading info, suspicious behavior, etc.'}
                     required
                   />
                 </label>
                 <div className="form-actions">
                   <button type="submit" className="btn btn-danger" disabled={reporting}>
-                    {reporting ? 'Submitting…' : 'Submit report'}
+                    {reporting ? t('submitting') : t('submitReport')}
                   </button>
                 </div>
               </form>
@@ -590,14 +620,14 @@ export function ProductDetailPage() {
 
       {canManage && editOpen && (
         <section className="card-panel">
-          <h3>Edit listing</h3>
+          <h3>{t('editListingBtn')}</h3>
           <form onSubmit={handleUpdateListing} className="auth-form">
             <label className="form-field">
-              <span>Title</span>
+              <span>{t('title')}</span>
               <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />
             </label>
             <label className="form-field">
-              <span>Description</span>
+              <span>{t('description')}</span>
               <textarea
                 rows={5}
                 minLength={10}
@@ -608,7 +638,7 @@ export function ProductDetailPage() {
             </label>
             <div className="form-row">
               <label className="form-field">
-                <span>Price (EUR)</span>
+                <span>{t('priceEur')}</span>
                 <input
                   type="number"
                   step="0.01"
@@ -619,7 +649,7 @@ export function ProductDetailPage() {
                 />
               </label>
               <label className="form-field">
-                <span>Location</span>
+                <span>{t('location')}</span>
                 <input
                   value={form.location}
                   onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
@@ -629,77 +659,41 @@ export function ProductDetailPage() {
             </div>
             <div className="form-row">
               <label className="form-field">
-                <span>Category</span>
+                <span>{t('category')}</span>
                 <select value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}>
-                  <option value="laptop">Laptop</option>
-                  <option value="desktop">PC</option>
-                  <option value="gpu">GPU</option>
-                  <option value="cpu">CPU</option>
-                  <option value="ram">RAM</option>
-                  <option value="storage">Storage</option>
-                  <option value="monitor">Monitor</option>
-                  <option value="peripheral">Peripheral</option>
-                  <option value="other">Other</option>
+                  <option value="laptop">{t('laptop')}</option>
+                  <option value="desktop">{t('desktop')}</option>
+                  <option value="gpu">{t('gpu')}</option>
+                  <option value="cpu">{t('cpu')}</option>
+                  <option value="ram">{t('ram')}</option>
+                  <option value="storage">{t('storage')}</option>
+                  <option value="monitor">{t('monitor')}</option>
+                  <option value="peripheral">{t('peripheral')}</option>
+                  <option value="other">{t('other')}</option>
                 </select>
               </label>
               <label className="form-field">
-                <span>Condition</span>
+                <span>{t('condition')}</span>
                 <select value={form.condition} onChange={(e) => setForm((p) => ({ ...p, condition: e.target.value }))}>
-                  <option value="new">New</option>
-                  <option value="used">Used</option>
-                  <option value="refurbished">Refurbished</option>
+                  <option value="new">{t('new')}</option>
+                  <option value="used">{t('used')}</option>
+                  <option value="refurbished">{t('refurbished')}</option>
                 </select>
               </label>
             </div>
             <div className="form-field">
-              <span>Add photos</span>
+              <span>{t('addPhotos')}</span>
               <p className="products-sub" style={{ margin: '0 0 0.5rem' }}>
-                Upload more images (max 2 MB each) or paste URLs below. Order = gallery order (first = cover).
+                {t('photosHint')}
               </p>
-              <input type="file" accept="image/*" multiple onChange={handleEditImageFiles} disabled={imageUploading} />
-              {imageUploading ? <p className="products-sub">Uploading…</p> : null}
+              <ImageUploader
+                value={editImageEntries}
+                onChange={setEditImageEntries}
+                maxFiles={8}
+              />
             </div>
-            <label className="form-field">
-              <span>Image URLs (gallery)</span>
-              {(form.images?.length ? form.images : ['']).map((url, i) => (
-                <div key={`edit-img-${i}`} className="edit-image-row">
-                  <input
-                    type="url"
-                    value={url}
-                    onChange={(e) =>
-                      setForm((p) => {
-                        const next = [...(p.images?.length ? p.images : [''])];
-                        next[i] = e.target.value;
-                        return { ...p, images: next };
-                      })
-                    }
-                    placeholder="https://… or /uploads/…"
-                  />
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() =>
-                      setForm((p) => {
-                        const next = [...(p.images || [])];
-                        next.splice(i, 1);
-                        return { ...p, images: next.length ? next : [''] };
-                      })
-                    }
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setForm((p) => ({ ...p, images: [...(p.images || []), ''] }))}
-              >
-                Add image URL
-              </button>
-            </label>
             <div className="specs-edit-block">
-              <h4 className="form-section-title">Specifications</h4>
+              <h4 className="form-section-title">{t('specifications')}</h4>
               <div className="form-row form-row-wrap">
                 {getSpecFieldDefs(form.category).map((def) => (
                   <label key={def.key} className="form-field">
@@ -720,7 +714,7 @@ export function ProductDetailPage() {
             </div>
             <div className="form-actions">
               <button type="submit" className="btn btn-primary" disabled={updating || imageUploading}>
-                {updating ? 'Saving…' : 'Save changes'}
+                {updating ? t('saving') : t('saveChanges')}
               </button>
             </div>
           </form>
@@ -729,7 +723,7 @@ export function ProductDetailPage() {
 
       {specRows.length > 0 && (
         <div className="specs-box">
-          <h3>Specifications</h3>
+          <h3>{t('specifications')}</h3>
           {specRows.map(([key, val]) => (
             <div className="spec-row" key={key}>
               <span className="spec-key">{key}</span>
@@ -743,8 +737,8 @@ export function ProductDetailPage() {
         <section className="similar-section">
           <div className="products-header">
             <div>
-              <h2>Similar items</h2>
-              <p className="products-sub">More items in the same category, like on eBay.</p>
+              <h2>{t('similarItems')}</h2>
+              <p className="products-sub">{t('similarItemsDesc')}</p>
             </div>
           </div>
           <div className="products-grid">
@@ -756,8 +750,8 @@ export function ProductDetailPage() {
       )}
 
       {lightboxOpen && (
-        <div className="lightbox" onClick={() => setLightboxOpen(false)}>
-          <button type="button" className="lightbox-close" onClick={() => setLightboxOpen(false)}>
+        <div className="lightbox" onClick={() => setLightboxOpen(false)} role="dialog" aria-modal="true" aria-label={t('imageViewer') || 'Image viewer'}>
+          <button type="button" className="lightbox-close" onClick={() => setLightboxOpen(false)} aria-label={t('close') || 'Close'}>
             ×
           </button>
           <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
@@ -768,14 +762,16 @@ export function ProductDetailPage() {
                   type="button"
                   className="lightbox-prev"
                   onClick={() => setLightboxIndex((lightboxIndex - 1 + product.images.length) % product.images.length)}
+                  aria-label={t('prevImage') || 'Previous image'}
                 >
                   ‹
                 </button>
-                <span className="lightbox-counter">{lightboxIndex + 1} / {product.images.length}</span>
+                <span className="lightbox-counter" aria-live="polite">{lightboxIndex + 1} {t('of')} {product.images.length}</span>
                 <button
                   type="button"
                   className="lightbox-next"
                   onClick={() => setLightboxIndex((lightboxIndex + 1) % product.images.length)}
+                  aria-label={t('nextImage') || 'Next image'}
                 >
                   ›
                 </button>

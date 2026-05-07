@@ -30,6 +30,7 @@ async function findMany(filters) {
     maxPrice,
     condition,
     location,
+    sortBy,
     page = 1,
     limit = 12,
   } = filters;
@@ -80,12 +81,25 @@ async function findMany(filters) {
   );
   const total = Number(countRows[0].c || 0);
 
+  const validSort = new Set(['price_asc', 'price_desc', 'most_viewed', 'newest', 'oldest']);
+  let orderBy = 'l.created_at DESC';
+  if (sortBy && validSort.has(sortBy)) {
+    switch (sortBy) {
+      case 'price_asc':   orderBy = 'l.price ASC'; break;
+      case 'price_desc':  orderBy = 'l.price DESC'; break;
+      case 'most_viewed': orderBy = 'l.views DESC'; break;
+      case 'oldest':      orderBy = 'l.created_at ASC'; break;
+      case 'newest':
+      default:            orderBy = 'l.created_at DESC'; break;
+    }
+  }
+
   const [rows] = await pool.query(
     `SELECT ${SELLER_JOIN}
      FROM listings l
      INNER JOIN users u ON u.id = l.seller_id
      ${whereSql}
-     ORDER BY l.created_at DESC
+     ORDER BY ${orderBy}
      LIMIT ? OFFSET ?`,
     [...params, lim, offset]
   );

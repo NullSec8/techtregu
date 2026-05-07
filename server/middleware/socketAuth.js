@@ -6,10 +6,8 @@ function jwtSecret() {
   return process.env.JWT_SECRET;
 }
 
-/**
- * Socket.IO: only allow joining your own user room; JWT from handshake.auth.token or httpOnly cookie.
- * Also fetches isAdmin flag from database.
- */
+const onlineUsers = new Set();
+
 function attachSocketAuth(io) {
   io.use(async (socket, next) => {
     let token = socket.handshake.auth?.token;
@@ -41,12 +39,26 @@ function attachSocketAuth(io) {
   });
 
   io.on('connection', (socket) => {
-    socket.join(String(socket.userId));
+    const userId = socket.userId;
+    
+    onlineUsers.add(userId);
+    io.emit('online', [...onlineUsers]);
+    
+    socket.join(String(userId));
     socket.on('join', (requestedUserId) => {
-      if (String(requestedUserId) !== String(socket.userId)) {
+      if (String(requestedUserId) !== String(userId)) {
         return;
       }
-      socket.join(String(socket.userId));
+      socket.join(String(userId));
+    });
+
+    socket.on('typing', ({ toUserId, isTyping }) => {
+      io.to(String(toUserId)).emit('typing', { userId, isTyping });
+    });
+
+    socket.on('disconnect', () => {
+      onlineUsers.delete(userId);
+      io.emit('online', [...onlineUsers]);
     });
   });
 }

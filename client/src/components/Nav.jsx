@@ -1,12 +1,17 @@
+import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useI18n } from '../context/I18nProvider';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { profilePath } from '../utils/profilePath';
 import { languages } from '../i18n/translations';
 
-export function Nav({ theme = 'default', onToggleTheme, lang = 'en', onChangeLang }) {
+export function Nav() {
   const { user, loading, logout } = useAuth();
+  const { t, lang, changeLang } = useI18n();
   const unreadMessages = useUnreadMessageCount(user?.id);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
 
   return (
     <nav className="site-nav" aria-label="Main">
@@ -14,69 +19,87 @@ export function Nav({ theme = 'default', onToggleTheme, lang = 'en', onChangeLan
         <Link to="/" className="nav-logo">
           Tech<span className="logo-accent">Tregu</span>
         </Link>
-        <span className="nav-tagline">Peer-to-peer marketplace</span>
+        <span className="nav-tagline">Marketplace</span>
       </div>
-      <div className="nav-links">
-        <NavLink to="/" end>
-          Browse
-        </NavLink>
-        <NavLink to="/new-listing">Sell</NavLink>
-        {user ? <NavLink to="/my-listings">My listings</NavLink> : null}
+
+      <button
+        type="button"
+        className={`mobile-menu-btn${mobileOpen ? ' open' : ''}`}
+        onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label="Toggle menu"
+        aria-expanded={mobileOpen}
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+
+      <div className={`nav-links${mobileOpen ? ' open' : ''}`}>
+        <NavLink to="/" end onClick={() => setMobileOpen(false)}>{t('browse')}</NavLink>
+        <NavLink to="/new-listing" onClick={() => setMobileOpen(false)}>{t('sell')}</NavLink>
+        {user ? <NavLink to="/my-listings" onClick={() => setMobileOpen(false)}>{t('myListings', lang)}</NavLink> : null}
+        {user ? <NavLink to="/favorites" onClick={() => setMobileOpen(false)}>{t('favorites')}</NavLink> : null}
         {user ? (
-          <NavLink to="/messages">
-            Messages
+          <NavLink to="/messages" onClick={() => setMobileOpen(false)}>
+            {t('messages')}
             {unreadMessages > 0 ? (
-              <span className="nav-badge" aria-label={`${unreadMessages} unread messages`}>
-                {unreadMessages > 99 ? '99+' : unreadMessages}
-              </span>
+              <span className="nav-badge" aria-label={`${unreadMessages > 99 ? '99 plus' : unreadMessages} unread messages`}>{unreadMessages > 99 ? '99+' : unreadMessages}</span>
             ) : null}
           </NavLink>
         ) : null}
-        {user?.isAdmin ? <NavLink to="/admin">Admin</NavLink> : null}
-      </div>
-      <div className="nav-actions">
-        <select
-          className="lang-select"
-          value={lang}
-          onChange={onChangeLang}
-          aria-label="Select language"
-        >
-          {languages.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.nativeName}
-            </option>
-          ))}
-        </select>
-        <button type="button" className="btn btn-theme" onClick={onToggleTheme}>
-          {theme === 'neon' ? 'Classic' : 'Neon'}
-        </button>
-        {loading ? (
-          <span className="nav-muted">…</span>
-        ) : user ? (
+        {user ? <NavLink to="/settings" onClick={() => setMobileOpen(false)}>{t('settings')}</NavLink> : null}
+        {user?.isAdmin ? <NavLink to="/admin" onClick={() => setMobileOpen(false)}>{t('admin', lang)}</NavLink> : null}
+        {!user && (
           <>
-            <span className="nav-user">
-              Hi, <strong>{user.firstName}</strong>
-            </span>
-            <div className="btn-group">
-              <Link to={profilePath(user)} className="btn btn-sm">
-                Profile
-              </Link>
-              <Link to="/settings" className="btn btn-sm">
-                Settings
-              </Link>
-              <button type="button" className="btn btn-sm" onClick={logout}>
-                Sign out
-              </button>
-            </div>
+            <NavLink to="/login" onClick={() => setMobileOpen(false)}>{t('signIn')}</NavLink>
+            <NavLink to="/register" onClick={() => setMobileOpen(false)} className="nav-cta">{t('register')}</NavLink>
           </>
+        )}
+      </div>
+
+      <div className="nav-actions">
+        {/* Language selector */}
+        <div className="lang-selector" style={{ position: 'relative' }}>
+          <button
+            type="button"
+            className="btn btn-sm lang-btn"
+            onClick={() => setLangOpen(!langOpen)}
+            aria-label="Change language"
+            aria-expanded={langOpen}
+            aria-controls="lang-menu"
+          >
+            {lang.toUpperCase()}
+          </button>
+          {langOpen && (
+            <div className="lang-dropdown" id="lang-menu" role="menu">
+              {languages.map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  className={`lang-option${l.code === lang ? ' active' : ''}`}
+                  onClick={() => { changeLang(l.code); setLangOpen(false); }}
+                  role="menuitem"
+                  aria-label={`Switch to ${l.nativeName} (${l.name})`}
+                >
+                  {l.nativeName}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {user ? (
+          <>
+            <span className="nav-user">Hi, <strong>{user.firstName}</strong></span>
+            <Link to={profilePath(user)} className="btn btn-sm">{t('profile')}</Link>
+            <button type="button" className="btn btn-sm" onClick={logout}>{t('logout')}</button>
+          </>
+        ) : loading ? (
+          <span className="nav-muted">…</span>
         ) : (
           <>
-            <Link to="/login" className="btn">
-              Sign In
-            </Link>
-            <Link to="/register" className="btn btn-primary">
-              Get started
-            </Link>
+            <Link to="/login" className="btn">{t('signIn')}</Link>
+            <Link to="/register" className="btn btn-primary">{t('register')}</Link>
           </>
         )}
       </div>

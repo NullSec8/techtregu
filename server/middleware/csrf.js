@@ -4,7 +4,16 @@ const CSRF_COOKIE = 'XSRF-TOKEN';
 const CSRF_HEADERS = ['x-xsrf-token', 'x-csrf-token'];
 
 /** POST bodies that must work before any GET (no CSRF cookie yet). */
-const CSRF_EXEMPT_PATHS = new Set(['/api/auth/login']);
+const CSRF_EXEMPT_PATHS = new Set([
+  '/api/auth/login',
+  '/api/health',
+  '/api/listings',
+  '/api/listings/:id',
+  '/api/users/:id',
+]);
+
+/** Paths that are always exempt (public GET-only). */
+const CSRF_PUBLIC_GET = new Set(['/api/listings', '/api/users', '/api/health']);
 
 function pathKey(req) {
   return req.originalUrl.split('?')[0];
@@ -37,6 +46,7 @@ function verifyCsrf(req, res, next) {
   if (m === 'GET' || m === 'HEAD' || m === 'OPTIONS') return next();
 
   const p = pathKey(req);
+  if (CSRF_PUBLIC_GET.has(p)) return next();
   if (m === 'POST' && CSRF_EXEMPT_PATHS.has(p)) return next();
 
   const cookie = req.cookies?.[CSRF_COOKIE];

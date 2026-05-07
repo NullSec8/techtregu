@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { CATEGORY_LABEL } from '../utils/listingUtils';
@@ -9,12 +9,40 @@ import {
 } from '../utils/specTemplates';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { pageTitle } from '../siteMeta';
+import { useI18n } from '../context/I18nProvider';
+import { ImageUploader } from '../components/ImageUploader';
 
 const CATEGORIES = Object.entries(CATEGORY_LABEL).map(([value, label]) => ({ value, label }));
 
+function validateListingField(name, value) {
+  const v = (value || '').trim();
+  switch (name) {
+    case 'title':
+      if (!v) return 'fieldRequired';
+      if (v.length < 3) return 'titleTooShort';
+      return '';
+    case 'description':
+      if (!v) return 'fieldRequired';
+      if (v.length < 10) return 'descTooShort';
+      return '';
+    case 'price': {
+      if (!v) return 'fieldRequired';
+      const n = Number.parseFloat(v);
+      if (Number.isNaN(n) || n <= 0) return 'invalidPrice';
+      return '';
+    }
+    case 'location':
+      if (!v) return 'fieldRequired';
+      return '';
+    default:
+      return '';
+  }
+}
+
 export function NewListingPage() {
   const navigate = useNavigate();
-  useDocumentTitle(pageTitle('New listing'));
+  const { t } = useI18n();
+  useDocumentTitle(pageTitle(t('newListing')));
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -24,10 +52,11 @@ export function NewListingPage() {
     location: '',
   });
   const [specs, setSpecs] = useState(() => initSpecStateForCategory('gpu'));
+  const [imageEntries, setImageEntries] = useState([]);
   const [imageUrls, setImageUrls] = useState(['']);
+  const [touched, setTouched] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [locations, setLocations] = useState([]);
 
   useEffect(() => {
@@ -46,39 +75,40 @@ export function NewListingPage() {
     return (e) => setSpecs((s) => ({ ...s, [key]: e.target.value }));
   }
 
-  async function handleImageFiles(e) {
-    const files = e.target.files ? [...e.target.files] : [];
-    e.target.value = '';
-    if (!files.length) return;
-    setUploading(true);
-    setError('');
-    try {
-      const fd = new FormData();
-      files.slice(0, 8).forEach((f) => fd.append('images', f));
-      const { data } = await api.post('/listings/images', fd);
-      const urls = data.urls || [];
-      const base = imageUrls.filter((u) => u.trim() !== '');
-      setImageUrls([...base, ...urls, '']);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Image upload failed');
-    } finally {
-      setUploading(false);
-    }
+  function handleBlur(field) {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  }
+
+  function getFieldError(field) {
+    if (!touched[field]) return '';
+    return validateListingField(field, form[field]);
+  }
+
+  function isFormValid() {
+    const fields = ['title', 'description', 'price', 'location'];
+    return fields.every((f) => !validateListingField(f, form[f]));
+  }
+
+  function getUploadedImageUrls() {
+    return imageEntries
+      .filter((e) => typeof e === 'string' || (e.done && !e.error))
+      .map((e) => (typeof e === 'string' ? e : e.url))
+      .filter(Boolean)
+      .concat(imageUrls.filter((u) => u.trim()));
   }
 
   async function onSubmit(e) {
     e.preventDefault();
     setError('');
+    setTouched({ title: true, description: true, price: true, location: true });
+    if (!isFormValid()) {
+      setError(t('pleaseFixErrors'));
+      return;
+    }
     setSubmitting(true);
     try {
       const price = Number.parseFloat(form.price);
-      if (Number.isNaN(price) || price < 0) {
-        setError('Enter a valid price.');
-        setSubmitting(false);
-        return;
-      }
-
-      const urls = imageUrls.map((u) => u.trim()).filter(Boolean);
+      const urls = getUploadedImageUrls();
       const specPayload = buildSpecsPayload(form.category, specs);
 
       const { data } = await api.post('/listings', {
@@ -110,55 +140,96 @@ export function NewListingPage() {
   return (
     <div className="auth-page">
       <div className="auth-card auth-card-wide">
-        <h1>New listing</h1>
-        <p className="auth-lead">Add photos and key specs so buyers can compare listings easily.</p>
-        <form onSubmit={onSubmit} className="auth-form">
+        <h1>{t('newListing')}</h1>
+        <p className="auth-lead">{t('newListingLead')}</p>
+        <form onSubmit={onSubmit} className="auth-form" noValidate>
           {error ? (
             <div className="form-error" role="alert">
               {error}
             </div>
           ) : null}
-          <label className="form-field">
-            <span>Title</span>
-            <input value={form.title} onChange={setField('title')} required minLength={3} />
-          </label>
-          <label className="form-field">
-            <span>Description (min 10 characters)</span>
-            <textarea
-              value={form.description}
-              onChange={setField('description')}
-              required
-              minLength={10}
-              rows={5}
-            />
-          </label>
-          <div className="form-row">
-            <label className="form-field">
-              <span>Price (EUR)</span>
+          <div className={`form-field ${getFieldError('title') ? 'has-error' : ''}`}>
+            <label>
+              <span>{t('title')}</span>
               <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={form.price}
-                onChange={setField('price')}
+                value={form.title}
+                onChange={setField('title')}
+                onBlur={() => handleBlur('title')}
                 required
+                minLength={3}
+                aria-invalid={!!getFieldError('title')}
+                aria-describedby={getFieldError('title') ? 'title-error' : undefined}
               />
             </label>
-            <label className="form-field">
-              <span>Location</span>
-              <select value={form.location} onChange={setField('location')} required>
-                <option value="">Select location</option>
-                {locations.map((loc) => (
-                  <option key={loc.code} value={loc.code}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
+            <span id="title-error" className="field-error" aria-live="polite">
+              {touched.title && t(getFieldError('title'))}
+            </span>
+          </div>
+          <div className={`form-field ${getFieldError('description') ? 'has-error' : ''}`}>
+            <label>
+              <span>{t('descHint')}</span>
+              <textarea
+                value={form.description}
+                onChange={setField('description')}
+                onBlur={() => handleBlur('description')}
+                required
+                minLength={10}
+                rows={5}
+                aria-invalid={!!getFieldError('description')}
+                aria-describedby={getFieldError('description') ? 'description-error' : undefined}
+              />
             </label>
+            <span id="description-error" className="field-error" aria-live="polite">
+              {touched.description && t(getFieldError('description'))}
+            </span>
+          </div>
+          <div className="form-row">
+            <div className={`form-field ${getFieldError('price') ? 'has-error' : ''}`}>
+              <label>
+                <span>{t('priceEur')}</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={form.price}
+                  onChange={setField('price')}
+                  onBlur={() => handleBlur('price')}
+                  required
+                  aria-invalid={!!getFieldError('price')}
+                  aria-describedby={getFieldError('price') ? 'price-error' : undefined}
+                />
+              </label>
+              <span id="price-error" className="field-error" aria-live="polite">
+                {touched.price && t(getFieldError('price'))}
+              </span>
+            </div>
+            <div className={`form-field ${getFieldError('location') ? 'has-error' : ''}`}>
+              <label>
+                <span>{t('location')}</span>
+                <select
+                  value={form.location}
+                  onChange={setField('location')}
+                  onBlur={() => handleBlur('location')}
+                  required
+                  aria-invalid={!!getFieldError('location')}
+                  aria-describedby={getFieldError('location') ? 'location-error' : undefined}
+                >
+                  <option value="">{t('selectLocation')}</option>
+                  {locations.map((loc) => (
+                    <option key={loc.code} value={loc.code}>
+                      {loc.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span id="location-error" className="field-error" aria-live="polite">
+                {touched.location && t(getFieldError('location'))}
+              </span>
+            </div>
           </div>
           <div className="form-row">
             <label className="form-field">
-              <span>Category</span>
+              <span>{t('category')}</span>
               <select value={form.category} onChange={setField('category')}>
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -168,28 +239,31 @@ export function NewListingPage() {
               </select>
             </label>
             <label className="form-field">
-              <span>Condition</span>
+              <span>{t('condition')}</span>
               <select value={form.condition} onChange={setField('condition')}>
-                <option value="new">New</option>
-                <option value="used">Used</option>
-                <option value="refurbished">Refurbished</option>
+                <option value="new">{t('new')}</option>
+                <option value="used">{t('used')}</option>
+                <option value="refurbished">{t('refurbished')}</option>
               </select>
             </label>
           </div>
 
           <div className="form-field">
-            <span>Photos (optional)</span>
+            <span>{t('photosOptional')}</span>
             <p className="products-sub" style={{ margin: '0 0 0.5rem' }}>
-              Upload up to 8 images (max 2 MB each). JPEG, PNG, GIF, WebP, or AVIF.
+              {t('photosHint')}
             </p>
-            <input type="file" accept="image/*" multiple onChange={handleImageFiles} disabled={uploading} />
-            {uploading ? <p className="products-sub">Uploading…</p> : null}
+            <ImageUploader
+              value={imageEntries}
+              onChange={setImageEntries}
+              maxFiles={8}
+            />
           </div>
 
           <label className="form-field">
-            <span>Image URLs (optional)</span>
+            <span>{t('imageUrlsOptional')}</span>
             <p className="products-sub" style={{ margin: '0 0 0.5rem' }}>
-              Or paste direct links; combined with uploads they become your gallery (first image is the cover).
+              {t('imageUrlsHint')}
             </p>
             {imageUrls.map((url, i) => (
               <input
@@ -204,13 +278,13 @@ export function NewListingPage() {
               />
             ))}
             <button type="button" className="btn" onClick={() => setImageUrls((rows) => [...rows, ''])}>
-              Add another URL
+              {t('addAnotherUrl')}
             </button>
           </label>
 
           <div className="specs-edit-block">
-            <h3 className="form-section-title">Specifications</h3>
-            <p className="products-sub">Fields change by category — fill what applies.</p>
+            <h3 className="form-section-title">{t('specifications')}</h3>
+            <p className="products-sub">{t('specsHint')}</p>
             <div className="form-row form-row-wrap">
               {specDefs.map((def) => (
                 <label key={def.key} className="form-field">
@@ -227,10 +301,10 @@ export function NewListingPage() {
 
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={submitting || uploading}>
-              {submitting ? 'Publishing…' : 'Publish listing'}
+              {submitting ? t('publishing') : t('publishListing')}
             </button>
             <Link to="/" className="btn">
-              Cancel
+              {t('cancel')}
             </Link>
           </div>
         </form>

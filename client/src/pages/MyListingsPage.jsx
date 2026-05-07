@@ -5,9 +5,11 @@ import { useAuth } from '../hooks/useAuth';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { pageTitle } from '../siteMeta';
 import { displayCategory, normalizeListing } from '../utils/listingUtils';
+import { useI18n } from '../context/I18nProvider';
 
 export function MyListingsPage() {
-  useDocumentTitle(pageTitle('My listings'));
+  const { t } = useI18n();
+  useDocumentTitle(pageTitle(t('myListings')));
   const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ export function MyListingsPage() {
       const { data } = await api.get('/users/me/listings');
       setItems((data || []).map(normalizeListing));
     } catch (e) {
-      setError(e.response?.data?.message || e.message || 'Failed to load your listings');
+      setError(e.response?.data?.message || e.message || t('error'));
       setItems([]);
     } finally {
       setLoading(false);
@@ -36,7 +38,7 @@ export function MyListingsPage() {
       await api.put(`/listings/${item.id}`, { isActive: !item.isActive });
       await load();
     } catch (e) {
-      setError(e.response?.data?.message || e.message || 'Failed to update listing');
+      setError(e.response?.data?.message || e.message || t('error'));
     }
   }
 
@@ -45,18 +47,18 @@ export function MyListingsPage() {
       await api.put(`/listings/${item.id}`, { isActive: false, isSold: true });
       await load();
     } catch (e) {
-      setError(e.response?.data?.message || e.message || 'Failed to mark as sold');
+      setError(e.response?.data?.message || e.message || t('error'));
     }
   }
 
   async function remove(item) {
-    const ok = window.confirm(`Delete "${item.title}"?`);
+    const ok = window.confirm(`${t('deleteConfirm')}`);
     if (!ok) return;
     try {
       await api.delete(`/listings/${item.id}`);
       await load();
     } catch (e) {
-      setError(e.response?.data?.message || e.message || 'Failed to delete listing');
+      setError(e.response?.data?.message || e.message || t('error'));
     }
   }
 
@@ -64,26 +66,26 @@ export function MyListingsPage() {
     <div className="page-my-listings">
       <div className="products-header">
         <div>
-          <h1>My listings</h1>
-          <p className="products-sub">Manage your inventory: edit, delete, and pause/unpause listings.</p>
+          <h1>{t('myListings')}</h1>
+          <p className="products-sub">{t('myListingsLead')}</p>
         </div>
         <Link to="/new-listing" className="btn btn-primary">
-          New listing
+          {t('createListing')}
         </Link>
       </div>
 
       {error ? <div className="banner-error">{error}</div> : null}
 
       {loading ? (
-        <p className="loading-text">Loading your listings…</p>
+        <p className="loading-text">{t('loadingListings')}</p>
       ) : items.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">🛍️</div>
-          <h3>No listings yet</h3>
-          <p>Start by creating your first listing.</p>
+          <h3>{t('noListings')}</h3>
+          <p>{t('startCreating')}</p>
           <p className="empty-actions">
             <Link to="/new-listing" className="btn btn-primary">
-              Create listing
+              {t('createListing')}
             </Link>
           </p>
         </div>
@@ -99,28 +101,28 @@ export function MyListingsPage() {
                   </p>
                 </div>
                 <span className={`listing-status ${item.isSold ? 'is-sold' : item.isActive ? 'is-active' : 'is-paused'}`}>
-                  {item.isSold ? 'Sold' : item.isActive ? 'Active' : 'Paused'}
+                  {item.isSold ? t('sold') : item.isActive ? t('active') : t('pause')}
                 </span>
               </div>
               <p className="my-listing-meta">
-                {item.views || 0} views · {item.location}
+                {item.views || 0} {t('viewsLabel')} · {item.location}
               </p>
               <div className="btn-group btn-group-sm">
                 <Link to={`/products/${item.id}`} className="btn">
-                  View
+                  {t('view')}
                 </Link>
                 <Link to={`/products/${item.id}?edit=1`} className="btn">
-                  Edit
+                  {t('edit')}
                 </Link>
                 {(!item.isSold) && (
-                  <button type="button" className="btn btn-sm" onClick={() => markSold(item)}>
-                    ✓ Sold
+                  <button type="button" className="btn btn-sm" onClick={() => markSold(item)} aria-label={`${t('markSold')}: "${item.title}"`}>
+                    ✓ {t('sold')}
                   </button>
                 )}
-                <button type="button" className="btn btn-sm" onClick={() => toggleActive(item)}>
+                <button type="button" className="btn btn-sm" onClick={() => toggleActive(item)} aria-label={item.isActive ? `${t('pause')}: "${item.title}"` : `${t('activate')}: "${item.title}"`}>
                   {item.isActive ? '⏸' : '▶'}
                 </button>
-                <button type="button" className="btn btn-sm btn-danger-ghost" onClick={() => remove(item)}>
+                <button type="button" className="btn btn-sm btn-danger-ghost" onClick={() => remove(item)} aria-label={`${t('deleteListing')}: "${item.title}"`}>
                   🗑
                 </button>
               </div>
@@ -128,7 +130,7 @@ export function MyListingsPage() {
           ))}
         </div>
       )}
-      <p className="products-sub">Signed in as @{user?.username || 'seller'}</p>
+      <p className="products-sub">{t('signedInAs')} @{user?.username || 'seller'}</p>
     </div>
   );
 }

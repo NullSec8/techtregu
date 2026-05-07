@@ -36,3 +36,33 @@ export function ProfilePageSkeleton() {
     </div>
   );
 }
+
+export function MessagesPageSkeleton() {
+  return (
+    <div className="page-messages" role="status" aria-live="polite" aria-label="Loading messages">
+      <h1>Messages</h1>
+      <p className="products-sub">Chat with buyers and sellers without leaving the platform.</p>
+      <div className="messages-layout">
+        <aside className="messages-list">
+          <h3>Conversations</h3>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="conversation-item-skeleton">
+              <div className="skeleton skeleton-shimmer skeleton-avatar-sm" />
+              <div className="conversation-item-content">
+                <div className="skeleton skeleton-shimmer skeleton-line skeleton-w-30" />
+                <div className="skeleton skeleton-shimmer skeleton-line skeleton-w-50" />
+              </div>
+            </div>
+          ))}
+        </aside>
+        <main className="messages-main">
+          <div className="messages-empty-skeleton">
+            <div className="skeleton skeleton-shimmer skeleton-line skeleton-w-40" />
+            <div className="skeleton skeleton-shimmer skeleton-line skeleton-w-60" />
+            <div className="skeleton skeleton-shimmer skeleton-line skeleton-w-50" />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

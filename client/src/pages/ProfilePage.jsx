@@ -8,6 +8,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { pageTitle } from '../siteMeta';
 import { ProductCard } from '../components/ProductCard';
 import { normalizeListing } from '../utils/listingUtils';
+import { useI18n } from '../context/I18nProvider';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -23,6 +24,7 @@ function formatDate(iso) {
 }
 
 export function ProfilePage() {
+  const { t } = useI18n();
   const { id: profileKey } = useParams();
   const navigate = useNavigate();
   const { user: me, refreshUser } = useAuth();
@@ -168,15 +170,15 @@ export function ProfilePage() {
     return (
       <div className="page-profile">
         <Link to="/" className="btn btn-back">
-          ← Back to listings
+          ← {t('backToListings')}
         </Link>
         <div className="empty-state empty-state-inline">
           <div className="empty-icon">👤</div>
-          <h2 className="empty-title">{error || 'Profile not found'}</h2>
-          <p>Check the URL or return to listings.</p>
+          <h2 className="empty-title">{error || t('profileNotFound')}</h2>
+          <p>{t('profileNotFoundDesc')}</p>
           <p className="empty-actions">
             <Link to="/" className="btn btn-primary">
-              Browse listings
+              {t('browseListings')}
             </Link>
           </p>
         </div>
@@ -193,15 +195,15 @@ export function ProfilePage() {
 
   return (
     <div className="page-profile">
-      <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: displayName }]} />
+      <Breadcrumbs items={[{ label: t('home'), href: '/' }, { label: displayName }]} />
       <Link to="/" className="btn btn-back">
-        ← Back to listings
+        ← {t('backToListings')}
       </Link>
 
       <header className="profile-header">
         <div className="profile-avatar-wrap">
           {profile.avatar ? (
-            <img src={profile.avatar} alt="" className="profile-avatar-img" />
+            <img src={profile.avatar} alt={displayName} className="profile-avatar-img" />
           ) : (
             <div className="profile-avatar">{initials}</div>
           )}
@@ -211,18 +213,18 @@ export function ProfilePage() {
           <p className="profile-username">@{profile.username}</p>
           {profile.location && <p className="profile-location">{profile.location}</p>}
           <p className="profile-meta">
-            Member since {formatDate(profile.createdAt)}
-            {profile.isVerified ? <span className="profile-badge">Verified</span> : null}
+            {t('memberSince')} {formatDate(profile.createdAt)}
+            {profile.isVerified ? <span className="profile-badge">{t('verified')}</span> : null}
           </p>
           <p className="profile-rating-placeholder">
-            Seller rating:{' '}
+            {t('sellerRatingLabel')}: {' '}
             {rating.averageRating == null
-              ? 'No ratings yet'
+              ? t('noRatingsYet')
               : `${stars(rating.averageRating)} ${rating.averageRating.toFixed(1)} (${rating.totalReviews})`}
           </p>
           {isOwn && (
             <button type="button" className="btn btn-primary profile-edit-toggle" onClick={() => setEditOpen(!editOpen)}>
-              {editOpen ? 'Close editor' : 'Edit profile'}
+              {editOpen ? t('closeEditor') : t('editProfile')}
             </button>
           )}
         </div>
@@ -230,8 +232,8 @@ export function ProfilePage() {
 
       {isOwn && editOpen && (
         <section className="profile-edit card-panel">
-          <h2>Profile details</h2>
-          <p className="profile-edit-hint">Updates are saved to your account (PUT /api/users/profile).</p>
+          <h2>{t('profileDetails')}</h2>
+          <p className="profile-edit-hint">{t('profileEditHint')}</p>
           <form onSubmit={handleSaveProfile} className="auth-form">
             {saveError ? (
               <div className="form-error" role="alert">
@@ -240,7 +242,7 @@ export function ProfilePage() {
             ) : null}
             <div className="form-row">
               <label className="form-field">
-                <span>First name</span>
+                <span>{t('firstName')}</span>
                 <input
                   value={form.firstName}
                   onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
@@ -248,7 +250,7 @@ export function ProfilePage() {
                 />
               </label>
               <label className="form-field">
-                <span>Last name</span>
+                <span>{t('lastName')}</span>
                 <input
                   value={form.lastName}
                   onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
@@ -257,23 +259,23 @@ export function ProfilePage() {
               </label>
             </div>
             <label className="form-field">
-              <span>Phone</span>
+              <span>{t('phone')}</span>
               <input
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="Optional"
+                placeholder={t('optional')}
               />
             </label>
             <label className="form-field">
-              <span>Location</span>
+              <span>{t('location')}</span>
               <input
                 value={form.location}
                 onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                placeholder="City, country"
+                placeholder={t('cityCountry')}
               />
             </label>
             <label className="form-field">
-              <span>Avatar image URL</span>
+              <span>{t('avatarUrl')}</span>
               <input
                 type="url"
                 value={form.avatar}
@@ -283,7 +285,7 @@ export function ProfilePage() {
             </label>
             <div className="form-actions">
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving ? 'Saving…' : 'Save changes'}
+                {saving ? t('saving') : t('saveChanges')}
               </button>
             </div>
           </form>
@@ -293,14 +295,14 @@ export function ProfilePage() {
       <section className="profile-listings-section">
         <div className="products-header">
           <div>
-            <h2>Listings by this seller</h2>
-            <p className="products-sub">{listings.length} active listing{listings.length === 1 ? '' : 's'}</p>
+            <h2>{t('listingsBySeller')}</h2>
+            <p className="products-sub">{listings.length} {t('activeListings')}</p>
           </div>
         </div>
 
         {listings.length === 0 ? (
           <div className="empty-state">
-            <p>No active listings yet.</p>
+            <p>{t('noActiveListings')}</p>
           </div>
         ) : (
           <div className="products-grid">
@@ -312,14 +314,14 @@ export function ProfilePage() {
       </section>
       {rating.latestReviews?.length > 0 && (
         <section className="card-panel">
-          <h2>Recent ratings</h2>
+          <h2>{t('recentRatings')}</h2>
           <div className="rating-review-list">
             {rating.latestReviews.slice(0, 4).map((r) => (
               <div key={r.id} className="rating-review-item">
                 <p>
                   <strong>{stars(r.rating)}</strong> by @{r.reviewer?.username || 'user'}
                 </p>
-                {r.comment ? <p>{r.comment}</p> : <p>No comment.</p>}
+                {r.comment ? <p>{r.comment}</p> : <p>{t('noComment')}</p>}
               </div>
             ))}
           </div>

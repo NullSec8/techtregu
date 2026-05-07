@@ -3,11 +3,21 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { ProductCard } from '../components/ProductCard';
 import { ProductSkeletonGrid } from '../components/ProductSkeleton';
+import { AutocompleteSearch } from '../components/AutocompleteSearch';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { DEFAULT_PAGE_TITLE } from '../siteMeta';
 import { FILTER_TO_API, normalizeListing } from '../utils/listingUtils';
 
+const SORT_TO_API = {
+  'newest': 'newest',
+  'popular': 'most_viewed',
+  'price-low': 'price_asc',
+  'price-high': 'price_desc',
+};
+import { useI18n } from '../context/I18nProvider';
+
 export function HomePage() {
+  const { t } = useI18n();
   useDocumentTitle(DEFAULT_PAGE_TITLE);
   const [activeCategory, setActiveCategory] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -59,6 +69,8 @@ export function HomePage() {
         if (debouncedSearch) params.set('search', debouncedSearch);
         if (debouncedMinPrice) params.set('minPrice', debouncedMinPrice);
         if (debouncedMaxPrice) params.set('maxPrice', debouncedMaxPrice);
+        const apiSort = SORT_TO_API[sortBy] || 'newest';
+        params.set('sortBy', apiSort);
         params.set('limit', '48');
 
         const { data } = await api.get(`/listings?${params.toString()}`);
@@ -85,7 +97,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [activeCategory, debouncedSearch, debouncedMinPrice, debouncedMaxPrice]);
+  }, [activeCategory, debouncedSearch, debouncedMinPrice, debouncedMaxPrice, sortBy]);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,11 +143,6 @@ export function HomePage() {
     };
   }, []);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setDebouncedSearch(searchTerm.trim());
-  };
-
   const hasActiveFilter = activeCategory !== 'all' || debouncedSearch.length > 0 || debouncedMinPrice || debouncedMaxPrice;
 
   function clearFilters() {
@@ -157,49 +164,30 @@ export function HomePage() {
     });
   }
 
-  const displayedListings = [...listings].sort((a, b) => {
-    if (sortBy === 'price-low') return Number(a.price) - Number(b.price);
-    if (sortBy === 'price-high') return Number(b.price) - Number(a.price);
-    if (sortBy === 'popular') return Number(b.views || 0) - Number(a.views || 0);
-    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-  });
-
   return (
     <div className="page-home">
       <section className="hero">
-        <div className="hero-badge">Tech marketplace for Kosovo &amp; region</div>
         <h1>
-          Buy and sell <span className="accent">tech hardware</span> with confidence
+          {t('heroTitle')} <span className="accent">{t('heroAccent')}</span> {t('heroTrailer')}
         </h1>
         <p className="hero-lead">
-          Clean listings, direct messaging, and trusted seller profiles. Everything you need to
-          trade faster, in one place.
+          {t('heroLead')}
         </p>
         <div className="hero-cta">
           <Link to="/" className="btn btn-primary">
-            Start browsing
+            {t('startBrowsing')}
           </Link>
           <Link to="/new-listing" className="btn">
-            Sell your item
+            {t('sellYourItem')}
           </Link>
         </div>
         <div className="hero-quick-panel">
-          <form onSubmit={handleSearch} className="hero-quick-search">
-            <input
-              type="search"
-              placeholder="Search laptops, GPUs, PCs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="hero-quick-input"
-              autoComplete="off"
-            />
-            <button type="submit" className="btn btn-primary">
-              Search now
-            </button>
-          </form>
+          <div className="hero-quick-search">
+            <AutocompleteSearch />
+          </div>
           <div className="hero-quick-cats">
             {[
-              { label: 'All', value: 'all' },
+              { label: t('all'), value: 'all' },
               { label: 'GPU', value: 'gpu' },
               { label: 'CPU', value: 'cpu' },
               { label: 'PC', value: 'pc' },
@@ -217,33 +205,22 @@ export function HomePage() {
             ))}
           </div>
         </div>
-        <ul className="trust-strip">
-          <li>
-            <span>✓</span> Verified seller identities
-          </li>
-          <li>
-            <span>✓</span> Secure accounts
-          </li>
-          <li>
-            <span>✓</span> Offer & message flow
-          </li>
-        </ul>
       </section>
 
       <section>
         <div className="products-header">
           <div>
-            <h2>Live listings</h2>
+            <h2>{t('liveListings')}</h2>
             <p className="products-sub">
-              Browse the latest hardware deals from trusted local sellers.
+              {t('browseDeals')}
             </p>
           </div>
           <div className="products-tools">
-            <span className="count-badge">{loading ? '…' : `${total} live`}</span>
+            <span className="count-badge">{loading ? '…' : `${total} ${t('live')}`}</span>
             <span className="price-filter">
               <input
                 type="number"
-                placeholder="Min €"
+                placeholder={`${t('minPrice')} €`}
                 value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
                 className="price-input"
@@ -252,24 +229,24 @@ export function HomePage() {
               <span>-</span>
               <input
                 type="number"
-                placeholder="Max €"
+                placeholder={`${t('maxPrice')} €`}
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
                 className="price-input"
                 min="0"
               />
             </span>
-            <span className="count-badge count-favorites">★ {favoriteIds.length} favorites</span>
+            <span className="count-badge count-favorites">★ {favoriteIds.length} {t('favorites').toLowerCase()}</span>
             <select
               className="sort-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              aria-label="Sort listings"
+              aria-label={t('sortBy')}
             >
-              <option value="newest">Newest</option>
-              <option value="popular">Most viewed</option>
-              <option value="price-low">Price: low to high</option>
-              <option value="price-high">Price: high to low</option>
+              <option value="newest">{t('newest')}</option>
+              <option value="popular">{t('popular')}</option>
+              <option value="price-low">{t('priceLowToHigh')}</option>
+              <option value="price-high">{t('priceHighToLow')}</option>
             </select>
           </div>
         </div>
@@ -286,37 +263,37 @@ export function HomePage() {
           hasActiveFilter ? (
             <div className="empty-state">
               <div className="empty-icon">🔍</div>
-              <h3>No matches</h3>
-              <p>Nothing matched your search or category. Try different keywords or browse all listings.</p>
+              <h3>{t('noResults')}</h3>
+              <p>{t('noMatchesDesc')}</p>
               <p className="empty-actions">
                 <button type="button" className="btn btn-primary" onClick={clearFilters}>
-                  Clear filters
+                  {t('clearFilters')}
                 </button>
                 <Link to="/help" className="btn">
-                  Help
+                  {t('help')}
                 </Link>
               </p>
             </div>
           ) : (
             <div className="empty-state">
               <div className="empty-icon">📦</div>
-              <h3>No listings yet</h3>
+              <h3>{t('noListings')}</h3>
               <p>
-                Be the first to post a listing and start the marketplace momentum.
+                {t('firstToListing')}
               </p>
               <p className="empty-actions">
                 <Link to="/register" className="btn btn-primary">
-                  Register
+                  {t('register')}
                 </Link>
                 <Link to="/new-listing" className="btn">
-                  New listing
+                  {t('createListing')}
                 </Link>
               </p>
             </div>
           )
         ) : (
           <div className="products-grid">
-            {displayedListings.map((product) => (
+            {listings.map((product) => (
               <ProductCard
                 product={product}
                 key={product.id}
@@ -332,8 +309,8 @@ export function HomePage() {
         <section className="recently-viewed-section">
           <div className="products-header">
             <div>
-              <h2>Recently viewed</h2>
-              <p className="products-sub">Jump back to items you explored earlier.</p>
+              <h2>{t('recentlyViewed')}</h2>
+              <p className="products-sub">{t('jumpBack')}</p>
             </div>
           </div>
           <div className="products-grid">

@@ -159,11 +159,11 @@ This project is licensed under the MIT License.
 
 ## Future Enhancements
 
-- [ ] Admin panel for managing users and listings
-- [ ] Favorites/wishlist functionality
+- [x] Admin panel for managing users and listings
+- [x] Favorites/wishlist functionality
+- [x] Review and rating system
+- [x] Dark mode toggle
+- [x] Email notifications
 - [ ] Advanced sorting and filtering
-- [ ] Email notifications
 - [ ] Payment integration
-- [ ] Review and rating system
-- [ ] Dark mode toggle
 - [ ] Mobile app version

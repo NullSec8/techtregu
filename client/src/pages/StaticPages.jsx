@@ -9,28 +9,62 @@ export function HelpPage() {
     <article className="page-static">
       <h1>Help center</h1>
       <p className="static-lead">
-        Quick answers for buyers and sellers on TechTregu. This is starter content you can replace with real
-        policies and FAQs.
+        Everything you need to know about buying and selling on TechTregu. Can't find what you're looking for? <a href="mailto:support@techtregu.com">Contact us</a>.
       </p>
+
+      <section className="static-section">
+        <h2>Getting started</h2>
+        <p>TechTregu is a marketplace for buying and selling tech products in Kosovo and the region. Whether you're looking for a laptop, GPU, PC parts, or accessories, you'll find it here.</p>
+      </section>
+
       <section className="static-section">
         <h2>Buying</h2>
         <ul>
-          <li>Use search and categories on the home page to narrow listings.</li>
-          <li>Open a listing for full specs, price in EUR, and seller details.</li>
-          <li>Contact sellers via email from the listing page (in-app messaging can be wired to /api/messages).</li>
+          <li><strong>Browse listings</strong> — Use the search bar and category filters on the home page to find what you need.</li>
+          <li><strong>View details</strong> — Click any listing to see full specifications, condition, price in EUR, and seller information.</li>
+          <li><strong>Contact sellers</strong> — Use the contact button on the listing page to reach out to sellers directly.</li>
+          <li><strong>Check seller profile</strong> — Review the seller's profile, location, and listing history before purchasing.</li>
+          <li><strong>Meet safely</strong> — Arrange meetups in public places. Always inspect the item before paying.</li>
         </ul>
       </section>
+
       <section className="static-section">
         <h2>Selling</h2>
         <ul>
-          <li>
-            <Link to="/register">Create an account</Link>, then use <Link to="/new-listing">New listing</Link> to
-            publish items.
-          </li>
-          <li>Add a clear title, honest condition, and an image URL so buyers trust the listing.</li>
-          <li>Update your <Link to="/login">profile</Link> so buyers can see your location and verification status.</li>
+          <li><Link to="/register">Create an account</Link> — Registration is free and takes just a minute.</li>
+          <li><Link to="/new-listing">Create a listing</Link> — Add a clear title, honest condition description, accurate price in EUR, and real photos.</li>
+          <li><strong>Be honest</strong> — Always describe the true condition of your item. Mention any defects or wear.</li>
+          <li><strong>Price fairly</strong> — Check similar listings to price your item competitively.</li>
+          <li><strong>Respond promptly</strong> — Answer buyer inquiries quickly to close sales faster.</li>
         </ul>
       </section>
+
+      <section className="static-section">
+        <h2>Safety tips</h2>
+        <ul>
+          <li>Never send money upfront before seeing the item in person.</li>
+          <li>Beware of deals that seem too good to be true — they usually are.</li>
+          <li>Use cash or secure payment methods when meeting in person.</li>
+          <li>Meet in well-lit, public locations like coffee shops or shopping centers.</li>
+          <li>Trust your instincts. If something feels off, walk away.</li>
+        </ul>
+      </section>
+
+      <section className="static-section">
+        <h2>Account &amp; listings</h2>
+        <ul>
+          <li>Manage your listings from the <Link to="/my-listings">My listings</Link> page.</li>
+          <li>Save items you're interested in using the <Link to="/favorites">Favorites</Link> feature.</li>
+          <li>Update your profile with your location so buyers know where you're based.</li>
+          <li>Edit or delete listings anytime from your dashboard.</li>
+        </ul>
+      </section>
+
+      <section className="static-section">
+        <h2>Messages</h2>
+        <p>When you receive messages from interested buyers, you'll see a notification in the navigation. Check your <Link to="/messages">Messages</Link> to stay connected.</p>
+      </section>
+
       <p className="static-footer-note">
         <Link to="/">← Back to listings</Link>
       </p>
@@ -45,43 +79,80 @@ export function PrivacyPage() {
     <article className="page-static">
       <h1>Privacy Policy</h1>
       <p className="static-meta">Last updated: April 2026</p>
+
       <section className="static-section">
-        <h2>What We Collect</h2>
-        <p>
-          We collect information you provide when creating an account: username, email, name, 
-          phone number (optional), and location. We also collect data from listings you create 
-          including product details, images, and pricing.
-        </p>
+        <h2>Information We Collect</h2>
+        <p>When you create an account on TechTregu, we collect:</p>
+        <ul>
+          <li>Your username, email address, and password</li>
+          <li>Your full name and phone number (optional)</li>
+          <li>Your location (city or area in Kosovo)</li>
+          <li>Profile information and profile picture</li>
+        </ul>
+        <p>When you create listings, we collect the product details, descriptions, images, and pricing information you provide. We also log messages sent between buyers and sellers through our platform.</p>
       </section>
+
       <section className="static-section">
-        <h2>How We Use Your Data</h2>
-        <p>
-          Your data is used to: authenticate your account, display your listings to other users, 
-          enable communication between buyers and sellers, and improve our services. 
-          We do not sell your personal information to third parties.
-        </p>
+        <h2>How We Use Your Information</h2>
+        <p>Your information is used to:</p>
+        <ul>
+          <li>Create and manage your account</li>
+          <li>Display your listings to other users</li>
+          <li>Facilitate communication between buyers and sellers</li>
+          <li>Send you important notifications about your account and messages</li>
+          <li>Improve our services and user experience</li>
+        </ul>
+        <p>We do not sell, rent, or share your personal information with third parties for marketing purposes.</p>
       </section>
+
       <section className="static-section">
         <h2>Data Security</h2>
-        <p>
-          We use industry-standard security measures to protect your data. Passwords are encrypted 
-          using bcrypt. Sessions are managed through secure JWT tokens.
-        </p>
+        <p>We take security seriously. Your passwords are hashed using bcrypt and never stored in plain text. Sessions are managed through secure JWT tokens with appropriate expiration. We use HTTPS encryption for all data transmission.</p>
+        <p>While we implement appropriate security measures, no method of transmission over the internet is 100% secure. We cannot guarantee absolute security, but we work hard to protect your data.</p>
       </section>
-      <section className="static-section">
-        <h2>Your Rights</h2>
-        <p>
-          Under Kosovo data protection law and GDPR, you have the right to access, correct, or delete 
-          your personal data. Contact us to exercise these rights.
-        </p>
-      </section>
+
       <section className="static-section">
         <h2>Cookies</h2>
-        <p>
-          We use cookies to keep you signed in. By using TechTregu, you agree to our use of 
-          cookies for authentication purposes.
-        </p>
+        <p>We use cookies to keep you signed in and maintain your session. These are essential cookies required for the platform to function properly. We do not use tracking cookies or advertising cookies.</p>
       </section>
+
+      <section className="static-section">
+        <h2>Your Rights</h2>
+        <p>Under Kosovo data protection law and the GDPR, you have the right to:</p>
+        <ul>
+          <li>Access your personal data</li>
+          <li>Correct inaccurate information</li>
+          <li>Delete your account and personal data</li>
+          <li>Export your data in a portable format</li>
+          <li>Object to certain processing of your data</li>
+        </ul>
+        <p>To exercise any of these rights, <a href="mailto:support@techtregu.com">contact us</a> with your request.</p>
+      </section>
+
+      <section className="static-section">
+        <h2>Data Retention</h2>
+        <p>We retain your account information for as long as your account is active. You can delete your account at any time from your profile settings. Upon deletion, we will remove your personal information within 30 days, except where retention is required by law.</p>
+      </section>
+
+      <section className="static-section">
+        <h2>Third-Party Services</h2>
+        <p>We use third-party services for hosting, analytics, and email delivery. These services have their own privacy policies. We encourage you to review their policies:</p>
+        <ul>
+          <li>Our hosting provider handles server infrastructure</li>
+          <li>Email service for account notifications</li>
+        </ul>
+      </section>
+
+      <section className="static-section">
+        <h2>Changes to This Policy</h2>
+        <p>We may update this privacy policy from time to time. If we make significant changes, we will notify you via email or a notice on the platform. The date at the top of this page shows when it was last updated.</p>
+      </section>
+
+      <section className="static-section">
+        <h2>Contact</h2>
+        <p>If you have questions about this privacy policy or how we handle your data, contact us at <a href="mailto:support@techtregu.com">support@techtregu.com</a>.</p>
+      </section>
+
       <p className="static-footer-note">
         <Link to="/">← Back to listings</Link>
       </p>
