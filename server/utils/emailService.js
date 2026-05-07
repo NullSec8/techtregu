@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { log } = require('../logger');
 
 let transporter = null;
 
@@ -11,7 +12,7 @@ function getTransporter() {
   const pass = process.env.SMTP_PASS;
 
   if (!host || !user || !pass) {
-    console.log('[Email] SMTP not configured - emails disabled');
+    log('warn', 'email_smtp_not_configured', { hint: 'SMTP not configured - emails disabled' });
     return null;
   }
 
@@ -22,7 +23,7 @@ function getTransporter() {
     auth: { user, pass },
   });
 
-  console.log('[Email] SMTP configured');
+  log('info', 'email_smtp_configured');
   return transporter;
 }
 
@@ -38,10 +39,10 @@ async function sendMail({ to, subject, html, text }) {
       html,
       text: text || html.replace(/<[^>]*>/g, ''),
     });
-    console.log(`[Email] Sent to ${to}: ${info.messageId}`);
+    log('info', 'email_sent', { to, messageId: info.messageId });
     return { success: true, messageId: info.messageId };
   } catch (err) {
-    console.error('[Email] Send failed:', err.message);
+    log('error', 'email_send_failed', { message: err.message });
     return { success: false, error: err.message };
   }
 }

@@ -13,16 +13,15 @@ const session = require('express-session');
 const { ensureDatabase } = require('./database/bootstrap');
 const { initSchema } = require('./database/initSchema');
 const { pool } = require('./database/pool');
-const { log } = require('./logger');
+const { log, requestLogger } = require('./logger');
 const { uploadsDir } = require('./middleware/listingImageUpload');
 const { ensureCsrfCookie, verifyCsrf } = require('./middleware/csrf');
 const { attachSocketAuth } = require('./middleware/socketAuth');
-const { createDbViewer } = require('./db-viewer');
 
 dotenv.config();
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-  console.error('FATAL: JWT_SECRET must be set to at least 32 random characters.');
+  log('fatal', 'jwt_secret_required', { hint: 'JWT_SECRET must be set to at least 32 random characters.' });
   process.exit(1);
 }
 
@@ -61,6 +60,7 @@ if (process.env.NODE_ENV === 'production') {
   };
 }
 app.use(helmet(helmetOpts));
+app.use(requestLogger);
 app.use(cookieParser());
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -103,7 +103,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   });
   
   if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
-  console.error('FATAL: SESSION_SECRET must be set in production.');
+  log('fatal', 'session_secret_required', { hint: 'SESSION_SECRET must be set in production.' });
   process.exit(1);
 }
 
@@ -116,7 +116,7 @@ app.use(session({
   app.use(passport.initialize());
   app.use(passport.session());
   
-  console.log('[GoogleAuth] Passport configured');
+  log('info', 'google_auth_configured');
 }
 
 app.use(
@@ -200,19 +200,20 @@ app.use('/api/consents', require('./routes/consents'));
 if (process.env.NODE_ENV !== 'production') {
   const { createDbViewer } = require('./db-viewer');
   app.use('/db-viewer', createDbViewer(pool));
-  console.log('[DB Viewer] Available at: http://localhost:' + (process.env.PORT || 5000) + '/db-viewer');
+  const viewerPort = process.env.PORT || 5000;
+  log('info', 'db_viewer_available', { url: `http://localhost:${viewerPort}/db-viewer` });
 }
 
 attachSocketAuth(io);
 
 process.on('SIGTERM', async () => {
-  console.log('Shutting down gracefully...');
+  log('info', 'shutting_down');
   await pool.end();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('Shutting down gracefully...');
+  log('info', 'shutting_down');
   await pool.end();
   process.exit(0);
 });
@@ -221,7 +222,7 @@ app.use((req, res, next) => {
   if (req.method === 'GET' && !req.url.startsWith('/api') && !req.url.startsWith('/uploads') && !req.url.startsWith('/socket.io')) {
     return res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'), (err) => {
       if (err) {
-        console.error('Error serving index.html:', err.message);
+        log('error', 'serve_index_failed', { message: err.message });
         res.status(404).send('Not found');
       }
     });
@@ -253,13 +254,12 @@ async function start() {
     log('info', 'database_ready');
   } catch (err) {
     log('error', 'mysql_init_failed', { message: err.message });
-    console.error('MySQL init failed:', err.message);
-    console.error('Fix MYSQL_* in .env and ensure the MySQL server is running.');
+    log('error', 'mysql_init_hint', { hint: 'Fix MYSQL_* in .env and ensure the MySQL server is running.' });
   }
 
   server.listen(PORT, '0.0.0.0', () => {
     log('info', 'server_listen', { port: PORT });
-    console.log(`Server running on port ${PORT} (all interfaces)`);
+    log('info', 'server_running', { port: PORT });
   });
 }
 
