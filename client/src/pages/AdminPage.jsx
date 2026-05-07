@@ -17,6 +17,8 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -28,11 +30,13 @@ export function AdminPage() {
     try {
       const [statsRes, listingsRes, reportsRes] = await Promise.all([
         api.get('/listings/admin/stats'),
-        api.get('/listings/admin/all?limit=100'),
+        api.get('/listings/admin/all', { params: { page, limit: PAGE_SIZE } }),
         api.get('/reports/admin/open'),
       ]);
       setStats(statsRes.data);
       setListings((listingsRes.data.listings || []).map(normalizeListing));
+      setTotalPages(listingsRes.data.totalPages || 1);
+      setTotalCount(listingsRes.data.total || 0);
       setReports(reportsRes.data || []);
     } catch (e) {
       setError(e.response?.data?.message || e.message || 'Could not load admin panel');
@@ -44,7 +48,7 @@ export function AdminPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page]);
 
   async function toggleActive(item) {
     try {
@@ -80,8 +84,8 @@ export function AdminPage() {
     }
   }
 
-  // Filter and paginate listings
-  const filtered = listings.filter((item) => {
+  // Filter listings to display on current page
+  const displayListings = listings.filter((item) => {
     if (statusFilter !== 'all') {
       if (statusFilter === 'active' && !item.isActive) return false;
       if (statusFilter === 'hidden' && item.isActive) return false;
@@ -92,10 +96,6 @@ export function AdminPage() {
     }
     return true;
   });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Reset page when filters change
   useEffect(() => {
@@ -204,10 +204,10 @@ export function AdminPage() {
                 <option value="hidden">{t('hidden')}</option>
               </select>
               <span className="admin-count-badge">
-                {filtered.length} / {listings.length}
+                {displayListings.length} / {totalCount}
               </span>
             </div>
-            {paginated.length === 0 ? (
+            {displayListings.length === 0 ? (
               <p className="products-sub">{t('noResults')}</p>
             ) : (
               <>
@@ -224,7 +224,7 @@ export function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginated.map((item) => (
+                    {displayListings.map((item) => (
                       <tr key={item.id}>
                         <td>{item.id}</td>
                         <td>
@@ -253,18 +253,18 @@ export function AdminPage() {
                     <button
                       type="button"
                       className="btn btn-sm"
-                      disabled={currentPage <= 1}
+                      disabled={page <= 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                     >
                       ← {t('prev') || 'Prev'}
                     </button>
                     <span className="admin-page-info">
-                      {t('page') || 'Page'} {currentPage} / {totalPages}
+                      {t('page') || 'Page'} {page} / {totalPages}
                     </span>
                     <button
                       type="button"
                       className="btn btn-sm"
-                      disabled={currentPage >= totalPages}
+                      disabled={page >= totalPages}
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     >
                       {t('next') || 'Next'} →
