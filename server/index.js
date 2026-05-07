@@ -139,7 +139,7 @@ const apiLimiter = rateLimit({
   max: Number(process.env.RATE_LIMIT_API_MAX || 1200),
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.originalUrl.split('?')[0] === '/api/health',
+  skip: (req) => ['/api/health', '/api/health/ws'].includes(req.originalUrl.split('?')[0]),
 });
 
 const authLimiter = rateLimit({
@@ -167,6 +167,15 @@ app.get('/api/health', async (_req, res) => {
     timestamp: new Date().toISOString(),
     database,
     env: process.env.NODE_ENV || 'development',
+  });
+});
+
+app.get('/api/health/ws', (req, res) => {
+  const io = req.app.get('io');
+  const connected = io ? io.engine.clientsCount : 0;
+  res.json({
+    websocket: io ? 'up' : 'down',
+    connected_clients: connected,
   });
 });
 
