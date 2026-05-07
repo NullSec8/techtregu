@@ -8,10 +8,23 @@ function jwtSecret() {
 
 const onlineUsers = new Set();
 
+function getXsrfCookie(rawCookie) {
+  if (!rawCookie) return '';
+  const m = rawCookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
 function attachSocketAuth(io) {
   io.use(async (socket, next) => {
-    let token = socket.handshake.auth?.token;
+    // CSRF double-submit cookie validation
     const rawCookie = socket.handshake.headers?.cookie;
+    const xsrfCookie = getXsrfCookie(rawCookie);
+    const xsrfAuth = socket.handshake.auth?.xsrfToken;
+    if ((xsrfCookie || xsrfAuth) && xsrfCookie !== xsrfAuth) {
+      return next(new Error('CSRF validation failed'));
+    }
+
+    let token = socket.handshake.auth?.token;
     if (!token && rawCookie) {
       const cookies = cookie.parse(rawCookie);
       token = cookies.tt_token;
