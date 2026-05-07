@@ -28,7 +28,7 @@ module.exports = [
       'no-console': 'off',
       'prefer-const': 'error',
       'no-var': 'error',
-      'eqeqeq': ['error', 'always'],
+      'eqeqeq': ['error', 'smart'],
     },
   },
   {
@@ -44,7 +44,7 @@ module.exports = [
       'no-console': 'off',
       'prefer-const': 'error',
       'no-var': 'error',
-      'eqeqeq': ['error', 'always'],
+      'eqeqeq': ['error', 'smart'],
     },
   },
 ];

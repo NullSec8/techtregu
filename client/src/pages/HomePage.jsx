@@ -110,18 +110,9 @@ export function HomePage() {
           if (!cancelled) setRecentItems([]);
           return;
         }
-        const results = await Promise.allSettled(
-          top.map(async (rid) => {
-            try {
-              const { data } = await api.get(`/listings/${rid}`);
-              return normalizeListing(data);
-            } catch {
-              return null;
-            }
-          })
-        ).then((results) => results.map((r) => r.value).filter(Boolean));
+        const { data } = await api.get(`/listings/batch?ids=${top.join(',')}`);
         if (cancelled) return;
-        setRecentItems(results.filter(Boolean));
+        setRecentItems((data.listings || []).map(normalizeListing));
       } catch {
         if (!cancelled) setRecentItems([]);
       }

@@ -518,6 +518,23 @@ router.post(
   })
 );
 
+
+router.get('/batch', asyncHandler(async (req, res) => {
+  const { ids } = req.query;
+  if (!ids || typeof ids !== 'string') {
+    return res.json({ listings: [] });
+  }
+  const idList = ids
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => !Number.isNaN(n) && n > 0);
+  if (idList.length === 0) {
+    return res.json({ listings: [] });
+  }
+  const listings = await listingRepository.findByIds(idList);
+  res.json({ listings });
+}));
+
 router.get('/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (Number.isNaN(id)) {

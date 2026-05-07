@@ -9,6 +9,18 @@ const SELLER_JOIN = `
   u.avatar AS seller_avatar, u.location AS seller_location
 `;
 
+async function findByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const [rows] = await pool.query(
+    `SELECT ${SELLER_JOIN}
+     FROM listings l
+     INNER JOIN users u ON u.id = l.seller_id
+     WHERE l.id IN (?) AND l.is_active = 1`,
+    [ids]
+  );
+  return rows.map((row) => mapListing(row));
+}
+
 async function findById(id) {
   const [rows] = await pool.query(
     `SELECT ${SELLER_JOIN}
@@ -288,6 +300,7 @@ async function getAdminStats() {
 }
 
 module.exports = {
+  findByIds,
   findById,
   findMany,
   create,
