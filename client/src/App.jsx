@@ -9,18 +9,23 @@ import { ScrollToTop } from './components/ScrollToTop';
 import { SkipLink } from './components/SkipLink';
 
 import './index.css';
-import './App.css';
+import './styles/nav.css';
+import './styles/hero.css';
+import './styles/listings.css';
+import './styles/auth.css';
+import './styles/profile.css';
+import './styles/admin.css';
+import './styles/messages.css';
+import './styles/footer.css';
+import './styles/utilities.css';
 
 function NotificationHandler() {
   const { user } = useAuth();
-  const [permission, setPermission] = useState('default');
+  const [permission, setPermission] = useState(() => {
+    if (typeof Notification === 'undefined') return 'default';
+    return Notification.permission;
+  });
   const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    if (!('Notification' in window)) return;
-    const p = Notification.permission;
-    setPermission(p);
-  }, []);
 
   useEffect(() => {
     if (!user || permission !== 'granted') return;
@@ -54,7 +59,7 @@ function NotificationHandler() {
 }
 
 export default function App() {
-  const [theme, setTheme] = useState(() => {
+  const [theme] = useState(() => {
     try {
       return localStorage.getItem('tt_theme') || 'default';
     } catch {
