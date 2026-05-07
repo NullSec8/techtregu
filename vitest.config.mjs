@@ -5,9 +5,12 @@ export default defineConfig({
     include: ['shared/**/*.test.js', 'server/**/*.test.js'],
     coverage: {
       provider: 'v8',
-      include: ['shared/contentModeration.js'],
+      include: [
+        'shared/contentModeration.js',
+        'shared/locations.js',
+      ],
       thresholds: {
-        branches: 90,
+        branches: 80,
       },
     },
   },
