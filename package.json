@@ -10,12 +10,27 @@
     "make-admin": "npm run make-admin --prefix server --",
     "install-client": "npm install --prefix client",
     "install-server": "npm install --prefix server",
-    "install-all": "npm run install-client && npm run install-server"
+    "install-all": "npm run install-client && npm run install-server",
+    "prepare": "husky",
+    "lint:server": "eslint server/ --config server/eslint.config.js",
+    "lint:client": "npm run lint --prefix client",
+    "lint": "npm run lint:server && npm run lint:client"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^8.2.2",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
   },
-  "keywords": ["marketplace", "tech", "react", "nodejs", "mongodb"],
+  "keywords": [
+    "marketplace",
+    "tech",
+    "react",
+    "nodejs",
+    "mongodb"
+  ],
   "author": "",
   "license": "ISC"
 }
