@@ -231,10 +231,60 @@ function authCookieOpts() {
 
 function generateToken(user) {
   return jwt.sign(
-    { user: { id: user.id, isAdmin: user.is_admin } },
+    {
+      user: {
+        id: user.id,
+        isAdmin: !!(user.isAdmin ?? user.is_admin),
+        username: user.username,
+        firstName: user.firstName ?? user.first_name ?? null,
+        lastName: user.lastName ?? user.last_name ?? null,
+        email: user.email,
+        phone: user.phone ?? null,
+        location: user.location ?? null,
+        avatar: user.avatar || '',
+        age: user.age ?? null,
+        isVerified: !!(user.isVerified ?? user.is_verified),
+        createdAt: user.createdAt ?? user.created_at ?? null,
+        lastLogin: user.lastLogin ?? user.last_login ?? null,
+      },
+    },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
+}
+
+/** Decode user payload from JWT in request (already verified by auth middleware). */
+function userFromToken(req) {
+  const header = req.header('Authorization');
+  const bearer = header?.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = bearer || req.cookies?.[TOKEN_COOKIE];
+  if (!token) return null;
+  try {
+    const decoded = jwt.decode(token);
+    return decoded?.user || decoded || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Build response object matching mapUser shape from JWT payload. */
+function userToJson(payload) {
+  return {
+    id: Number(payload.id),
+    _id: String(payload.id),
+    username: payload.username,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+    email: payload.email,
+    phone: payload.phone || null,
+    location: payload.location || null,
+    avatar: payload.avatar || '',
+    age: payload.age ?? null,
+    isAdmin: payload.isAdmin,
+    isVerified: payload.isVerified,
+    createdAt: payload.createdAt || null,
+    lastLogin: payload.lastLogin || null,
+  };
 }
 
 router.post(
@@ -270,7 +320,16 @@ router.post(
       lastName,
     });
 
-    const token = generateToken({ id: userId, is_admin: 0 });
+    const token = generateToken({
+      id: userId,
+      is_admin: 0,
+      username,
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      avatar: null,
+      is_verified: 0,
+    });
     res.cookie(TOKEN_COOKIE, token, authCookieOpts());
     res.status(201).json({ id: userId, username, email, firstName, lastName });
 
@@ -353,6 +412,11 @@ router.post('/logout', authLimiter, (req, res) => {
 });
 
 router.get('/me', auth, asyncHandler(async (req, res) => {
+  const payload = userFromToken(req);
+  if (payload && payload.username) {
+    return res.json(userToJson(payload));
+  }
+  // Fallback for old tokens issued before profile fields were added
   const row = await userRepository.findById(req.user.id);
   if (!row) {
     return res.status(404).json({ message: 'User not found' });
@@ -361,6 +425,13 @@ router.get('/me', auth, asyncHandler(async (req, res) => {
 }));
 
 router.post('/refresh', authLimiter, auth, asyncHandler(async (req, res) => {
+  const payload = userFromToken(req);
+  if (payload && payload.username) {
+    const token = generateToken(payload);
+    res.cookie(TOKEN_COOKIE, token, authCookieOpts());
+    return res.json(userToJson(payload));
+  }
+  // Fallback for old tokens issued before profile fields were added
   const row = await userRepository.findById(req.user.id);
   if (!row) {
     return res.status(401).json({ message: 'User not found' });
