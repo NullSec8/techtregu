@@ -360,7 +360,7 @@ router.get('/me', auth, asyncHandler(async (req, res) => {
   res.json(mapUser(row, { includeEmail: true }));
 }));
 
-router.post('/refresh', auth, asyncHandler(async (req, res) => {
+router.post('/refresh', authLimiter, auth, asyncHandler(async (req, res) => {
   const row = await userRepository.findById(req.user.id);
   if (!row) {
     return res.status(401).json({ message: 'User not found' });
