@@ -14,19 +14,19 @@ export function Nav() {
   const [langOpen, setLangOpen] = useState(false);
 
   return (
-    <nav className="site-nav" aria-label="Main">
+    <nav className="site-nav" aria-label={t('mainNavAria')}>
       <div className="nav-brand">
         <Link to="/" className="nav-logo">
           Tech<span className="logo-accent">Tregu</span>
         </Link>
-        <span className="nav-tagline">Marketplace</span>
+        <span className="nav-tagline">{t('marketplace')}</span>
       </div>
 
       <button
         type="button"
         className={`mobile-menu-btn${mobileOpen ? ' open' : ''}`}
         onClick={() => setMobileOpen(!mobileOpen)}
-        aria-label="Toggle menu"
+        aria-label={t('toggleMenuAria')}
         aria-expanded={mobileOpen}
       >
         <span />
@@ -43,7 +43,7 @@ export function Nav() {
           <NavLink to="/messages" onClick={() => setMobileOpen(false)}>
             {t('messages')}
             {unreadMessages > 0 ? (
-              <span className="nav-badge" aria-label={`${unreadMessages > 99 ? '99 plus' : unreadMessages} unread messages`}>{unreadMessages > 99 ? '99+' : unreadMessages}</span>
+              <span className="nav-badge" aria-label={`${unreadMessages > 99 ? '99+' : unreadMessages} ${t('unreadAria')}`}>{unreadMessages > 99 ? '99+' : unreadMessages}</span>
             ) : null}
           </NavLink>
         ) : null}
@@ -64,7 +64,7 @@ export function Nav() {
             type="button"
             className="btn btn-sm lang-btn"
             onClick={() => setLangOpen(!langOpen)}
-            aria-label="Change language"
+            aria-label={t('changeLangAria')}
             aria-expanded={langOpen}
             aria-controls="lang-menu"
           >
@@ -79,7 +79,7 @@ export function Nav() {
                   className={`lang-option${l.code === lang ? ' active' : ''}`}
                   onClick={() => { changeLang(l.code); setLangOpen(false); }}
                   role="menuitem"
-                  aria-label={`Switch to ${l.nativeName} (${l.name})`}
+                  aria-label={`${t('switchLangAria')} ${l.nativeName} (${l.name})`}
                 >
                   {l.nativeName}
                 </button>
@@ -90,7 +90,7 @@ export function Nav() {
 
         {user ? (
           <>
-            <span className="nav-user">Hi, <strong>{user.firstName}</strong></span>
+            <span className="nav-user">{t('greeting')} <strong>{user.firstName}</strong></span>
             <Link to={profilePath(user)} className="btn btn-sm">{t('profile')}</Link>
             <button type="button" className="btn btn-sm" onClick={logout}>{t('logout')}</button>
           </>

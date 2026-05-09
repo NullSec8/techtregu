@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useI18n } from '../context/I18nProvider';
 
 export function usePushNotifications(userId) {
   const [permission, setPermission] = useState(() => {
@@ -92,20 +93,24 @@ export function usePushNotifications(userId) {
 }
 
 export function PushNotificationBanner() {
+  const { t } = useI18n();
   const [dismissed, setDismissed] = useState(false);
-  const [permission, setPermission] = useState('default');
+  const [permission, setPermission] = useState(() => {
+    if (!('Notification' in window)) return 'unsupported';
+    return Notification.permission;
+  });
 
   useEffect(() => {
     if (!('Notification' in window)) return;
-    const p = Notification.permission;
-    setPermission(p);
+    const id = setTimeout(() => setPermission(Notification.permission));
+    return () => clearTimeout(id);
   }, []);
 
   if (dismissed || permission !== 'default') return null;
 
   return (
     <div className="push-banner">
-      <span>Enable notifications to get alerts for new messages</span>
+      <span>{t('enableNotifications')}</span>
       <button
         type="button"
         className="push-banner-accept"
@@ -115,13 +120,13 @@ export function PushNotificationBanner() {
           if (result !== 'granted') setDismissed(true);
         }}
       >
-        Enable
+        {t('enableBtn')}
       </button>
       <button
         type="button"
         className="push-banner-dismiss"
         onClick={() => setDismissed(true)}
-        aria-label="Dismiss"
+        aria-label={t('dismissBtn')}
       >
         ×
       </button>

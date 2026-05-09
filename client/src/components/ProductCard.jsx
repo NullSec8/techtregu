@@ -13,8 +13,8 @@ const ProductCardInner = memo(function ProductCardInner({ product, isFavorite, o
   const id = useMemo(() => product.id || product._id, [product.id, product._id]);
   const sellerId = useMemo(() => product.seller?.id ?? product.seller?._id, [product.seller]);
   const sellerHandle = useMemo(
-    () => product.seller?.username || product.seller?.name || 'seller',
-    [product.seller]
+    () => product.seller?.username || product.seller?.name || t('sellerFallback'),
+    [product.seller, t]
   );
   const signalBadge = useMemo(
     () => Number(product.views || 0) > 20 ? t('fastDeal') : t('verified'),
@@ -67,7 +67,7 @@ const ProductCardInner = memo(function ProductCardInner({ product, isFavorite, o
           <h3 className="card-title">{product.title}</h3>
           <p className="card-desc">{description}</p>
           <div className="card-meta-row">
-            <span aria-label={`Location: ${product.location || 'Kosovo'}`}>{product.location || 'Kosovo'}</span>
+            <span aria-label={`${t('locationAria')} ${product.location || 'Kosovo'}`}>{product.location || 'Kosovo'}</span>
             <span aria-label={`${product.views ?? 0} ${t('viewsLabel')}`}>{product.views ?? 0} {t('viewsLabel')}</span>
           </div>
         </div>

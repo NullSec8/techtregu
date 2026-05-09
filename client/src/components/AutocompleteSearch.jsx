@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { useI18n } from '../context/I18nProvider';
 
 export function AutocompleteSearch({ onNavigate }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,8 +27,8 @@ export function AutocompleteSearch({ onNavigate }) {
 
   useEffect(() => {
     if (!query.trim() || query.length < 2) {
-      setSuggestions([]);
-      return;
+      const id = setTimeout(() => setSuggestions([]));
+      return () => clearTimeout(id);
     }
 
     const timer = setTimeout(async () => {
@@ -54,7 +56,7 @@ export function AutocompleteSearch({ onNavigate }) {
     onNavigate?.();
   }
 
-  const handleKeyDown = useCallback((e) => {
+  function handleKeyDown(e) {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActiveIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
@@ -69,7 +71,7 @@ export function AutocompleteSearch({ onNavigate }) {
       setActiveIndex(-1);
       inputRef.current?.blur();
     }
-  }, [suggestions, activeIndex]);
+  }
 
   return (
     <div className="autocomplete-wrap" ref={wrapperRef} role="combobox" aria-expanded={show && query.length >= 2} aria-haspopup="listbox" aria-owns={listboxId}>
@@ -77,8 +79,8 @@ export function AutocompleteSearch({ onNavigate }) {
         ref={inputRef}
         type="search"
         className="autocomplete-input"
-        placeholder="Search laptops, GPUs, PCs..."
-        aria-label="Search listings"
+        placeholder={t('searchPlaceholder')}
+        aria-label={t('searchListingsAria')}
         role="searchbox"
         aria-autocomplete="list"
         aria-controls={listboxId}
@@ -89,9 +91,9 @@ export function AutocompleteSearch({ onNavigate }) {
         onKeyDown={handleKeyDown}
       />
       {show && query.length >= 2 && (
-        <div className="autocomplete-dropdown" id={listboxId} role="listbox" aria-label="Search suggestions">
+        <div className="autocomplete-dropdown" id={listboxId} role="listbox" aria-label={t('searchSuggestionsAria')}>
           {loading ? (
-            <div className="autocomplete-loading" role="status" aria-live="polite">Searching...</div>
+            <div className="autocomplete-loading" role="status" aria-live="polite">{t('searchingText')}</div>
           ) : suggestions.length > 0 ? (
             suggestions.map((item, i) => (
               <button
@@ -114,7 +116,7 @@ export function AutocompleteSearch({ onNavigate }) {
               </button>
             ))
           ) : (
-            <div className="autocomplete-empty" role="status">No results found</div>
+            <div className="autocomplete-empty" role="status">{t('noResults')}</div>
           )}
         </div>
       )}

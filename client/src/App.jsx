@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { HashRouter, Link } from 'react-router-dom';
 import { AuthProvider } from './context/AuthProvider';
 import { I18nProvider } from './context/I18nProvider';
+import { useI18n } from './context/I18nProvider';
 import { useAuth } from './hooks/useAuth';
 import { Nav } from './components/Nav';
 import { AnimatedRoutes } from './components/AnimatedRoutes';
@@ -21,6 +22,7 @@ import './styles/utilities.css';
 
 function NotificationHandler() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [permission, setPermission] = useState(() => {
     if (typeof Notification === 'undefined') return 'default';
     return Notification.permission;
@@ -32,7 +34,7 @@ function NotificationHandler() {
     function handleNotification(e) {
       const data = e.detail;
       if (data?.type === 'new_message') {
-        new Notification(`New message from ${data.senderName}`, {
+        new Notification(`${t('newMessageFrom')} ${data.senderName}`, {
           body: data.preview,
           icon: '/favicon.svg',
           tag: 'new-message',
@@ -41,20 +43,60 @@ function NotificationHandler() {
     }
     window.addEventListener('tt-notification', handleNotification);
     return () => window.removeEventListener('tt-notification', handleNotification);
-  }, [user, permission]);
+  }, [user, permission, t]);
 
   if (!user || dismissed || permission !== 'default' || !('Notification' in window)) return null;
 
   return (
     <div className="push-banner" role="status" aria-live="polite">
-      <span>Enable notifications for new messages</span>
+      <span>{t('enableNotifications')}</span>
       <button className="btn btn-sm" onClick={async () => {
         const p = await Notification.requestPermission();
         setPermission(p);
         if (p !== 'granted') setDismissed(true);
-      }} aria-label="Enable push notifications">Enable</button>
-      <button className="push-dismiss" onClick={() => setDismissed(true)} aria-label="Dismiss notification prompt">×</button>
+      }} aria-label={t('enableNotifications')}>{t('enableBtn')}</button>
+      <button className="push-dismiss" onClick={() => setDismissed(true)} aria-label={t('dismissBtn')}>×</button>
     </div>
+  );
+}
+
+function FooterContent() {
+  const { t } = useI18n();
+  return (
+    <footer className="site-footer">
+      <div className="footer-grid">
+        <div className="footer-brand">
+          <div className="footer-logo">
+            Tech<span>Tregu</span>
+          </div>
+          <p>{t('footerTagline')}</p>
+        </div>
+        <div className="footer-col">
+          <h4>{t('shop')}</h4>
+          <ul>
+            <li><Link to="/">{t('browse')}</Link></li>
+            <li><Link to="/new-listing">{t('sell')}</Link></li>
+          </ul>
+        </div>
+        <div className="footer-col">
+          <h4>{t('account')}</h4>
+          <ul>
+            <li><Link to="/register">{t('register')}</Link></li>
+            <li><Link to="/login">{t('signIn')}</Link></li>
+          </ul>
+        </div>
+        <div className="footer-col">
+          <h4>{t('support')}</h4>
+          <ul>
+            <li><Link to="/help">{t('help')}</Link></li>
+            <li><a href="mailto:support@techtregu.com">{t('contact')}</a></li>
+          </ul>
+        </div>
+      </div>
+      <div className="footer-bottom">
+        {t('copyrightLine')}
+      </div>
+    </footer>
   );
 }
 
@@ -87,40 +129,7 @@ export default function App() {
           <main className="site-main" id="main-content" tabIndex={-1}>
             <AnimatedRoutes />
           </main>
-          <footer className="site-footer">
-            <div className="footer-grid">
-              <div className="footer-brand">
-                <div className="footer-logo">
-                  Tech<span>Tregu</span>
-                </div>
-                <p>Tech marketplace for Kosovo. Buy and sell with confidence.</p>
-              </div>
-              <div className="footer-col">
-                <h4>Shop</h4>
-                <ul>
-                  <li><Link to="/">Browse</Link></li>
-                  <li><Link to="/new-listing">Sell</Link></li>
-                </ul>
-              </div>
-              <div className="footer-col">
-                <h4>Account</h4>
-                <ul>
-                  <li><Link to="/register">Register</Link></li>
-                  <li><Link to="/login">Sign in</Link></li>
-                </ul>
-              </div>
-              <div className="footer-col">
-                <h4>Support</h4>
-                <ul>
-                  <li><Link to="/help">Help</Link></li>
-                  <li><a href="mailto:support@techtregu.com">Contact</a></li>
-                </ul>
-              </div>
-            </div>
-            <div className="footer-bottom">
-              © 2026 TechTregu. All rights reserved.
-            </div>
-          </footer>
+          <FooterContent />
         </AuthProvider>
       </I18nProvider>
     </HashRouter>

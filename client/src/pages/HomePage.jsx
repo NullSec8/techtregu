@@ -179,11 +179,11 @@ export function HomePage() {
           <div className="hero-quick-cats">
             {[
               { label: t('all'), value: 'all' },
-              { label: 'GPU', value: 'gpu' },
-              { label: 'CPU', value: 'cpu' },
-              { label: 'PC', value: 'pc' },
-              { label: 'RAM', value: 'ram' },
-              { label: 'SSD', value: 'ssd' },
+              { label: t('gpu'), value: 'gpu' },
+              { label: t('cpu'), value: 'cpu' },
+              { label: t('desktop'), value: 'pc' },
+              { label: t('ram'), value: 'ram' },
+              { label: t('ssd'), value: 'ssd' },
             ].map((cat) => (
               <button
                 key={`hero-${cat.value}`}
