@@ -1,7 +1,7 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const favoritesRepository = require('../database/favoritesRepository');
-const { asyncHandler, AppError } = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 const router = express.Router();
 

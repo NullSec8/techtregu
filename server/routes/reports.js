@@ -4,7 +4,7 @@ const auth = require('../middleware/auth');
 const reportRepository = require('../database/reportRepository');
 const listingRepository = require('../database/listingRepository');
 const { plainText } = require('../utils/sanitize');
-const { asyncHandler, AppError } = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 const router = express.Router();
 

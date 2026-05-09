@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { categoryEmoji, displayCategory } from '../utils/listingUtils';
 import { useI18n } from '../context/I18nProvider';
 
@@ -30,7 +31,11 @@ const ProductCardInner = memo(function ProductCardInner({ product, isFavorite, o
   );
 
   return (
-    <article className="product-card">
+    <motion.article
+      className="product-card"
+      whileHover={{ y: -4, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+    >
       <Link to={`/products/${id}`} className="product-card-main">
         <div className="card-media">
           <span className="card-badge">{t('listed')}</span>
@@ -90,7 +95,7 @@ const ProductCardInner = memo(function ProductCardInner({ product, isFavorite, o
           <span className="card-seller">@{sellerHandle}</span>
         )}
       </div>
-    </article>
+    </motion.article>
   );
 });
 

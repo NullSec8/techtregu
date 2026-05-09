@@ -34,7 +34,7 @@ export function FavoritesPage() {
       }
     }
     load();
-  }, [user, navigate]);
+  }, [user, navigate, t]);
 
   function handleRemove(listingId) {
     setFavorites((prev) => prev.filter((f) => f.id !== listingId));

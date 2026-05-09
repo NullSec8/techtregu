@@ -1,13 +1,13 @@
 let sharp;
+const { log } = require('../logger');
 try {
   sharp = require('sharp');
 } catch {
-  console.log('[ImageOptim] Sharp not available - using basic optimization only');
+  log('warn', 'sharp_not_available', { hint: 'Install sharp for image optimization' });
 }
 
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 fs.existsSync(uploadsDir) || fs.mkdirSync(uploadsDir, { recursive: true });
@@ -31,7 +31,6 @@ async function optimizeImage(inputPath, outputPath, options = {}) {
     height = MAX_HEIGHT,
     quality = QUALITY,
     format = OPTIMIZE_FORMATS,
-    createThumbnail = false,
   } = options;
 
   try {
@@ -73,7 +72,7 @@ async function optimizeImage(inputPath, outputPath, options = {}) {
       optimizedSize,
     };
   } catch (err) {
-    console.error('[ImageOptim] Error:', err.message);
+    log('error', 'image_optim_error', { error: err.message });
     fs.copyFileSync(inputPath, outputPath);
     return { saved: false, outputPath };
   }
@@ -98,18 +97,9 @@ async function generateThumbnails(imagePath) {
 
     return thumbPath;
   } catch (err) {
-    console.error('[ImageOptim] Thumbnail error:', err.message);
+    log('error', 'thumbnail_error', { error: err.message });
     return null;
   }
-}
-
-function getImageHash(buffer) {
-  return crypto.createHash('md5').update(buffer).digest('hex');
-}
-
-function getOptimizedFilename(originalName, options = {}) {
-  const ext = options.format === 'webp' ? '.webp' : path.extname(originalName);
-  return `opt_${Date.now()}${ext}`;
 }
 
 const imageOptimizer = {

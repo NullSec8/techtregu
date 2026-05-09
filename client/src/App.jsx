@@ -8,6 +8,7 @@ import { Nav } from './components/Nav';
 import { AnimatedRoutes } from './components/AnimatedRoutes';
 import { ScrollToTop } from './components/ScrollToTop';
 import { SkipLink } from './components/SkipLink';
+import { ToastProvider } from './components/ui/Toast';
 
 import './index.css';
 import './styles/nav.css';
@@ -19,6 +20,9 @@ import './styles/admin.css';
 import './styles/messages.css';
 import './styles/footer.css';
 import './styles/utilities.css';
+import './styles/buttons.css';
+import './styles/modal.css';
+import './styles/toast.css';
 
 function NotificationHandler() {
   const { user } = useAuth();
@@ -123,6 +127,7 @@ export default function App() {
       <I18nProvider>
         <ScrollToTop />
         <SkipLink />
+        <ToastProvider>
         <AuthProvider>
           <NotificationHandler />
           <Nav />
@@ -131,6 +136,7 @@ export default function App() {
           </main>
           <FooterContent />
         </AuthProvider>
+        </ToastProvider>
       </I18nProvider>
     </HashRouter>
   );

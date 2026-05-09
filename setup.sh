@@ -2,7 +2,8 @@
 # Setup script for TechTregu - Run with: bash setup.sh
 
 echo "Creating MySQL user and database..."
-mysql -u root -p'Black' <<EOF
+MYSQL_ROOT_PASS="${MYSQL_ROOT_PASSWORD:-}"
+mysql -u root ${MYSQL_ROOT_PASS:+-p"$MYSQL_ROOT_PASS"} <<EOF
 CREATE DATABASE IF NOT EXISTS techtregu;
 CREATE USER IF NOT EXISTS 'techtregu'@'localhost' IDENTIFIED BY 'techtregu_dev';
 GRANT ALL PRIVILEGES ON techtregu.* TO 'techtregu'@'localhost';

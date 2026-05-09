@@ -10,7 +10,7 @@ const { ensureDatabase } = require('./database/bootstrap');
 const DEMO = {
   username: 'techtregu_demo',
   email: 'demo@techtregu.com',
-  password: 'DemoPass123',
+  password: process.env.DEMO_PASSWORD || 'DemoPass123',
   firstName: 'Demo',
   lastName: 'Seller',
   location: 'Prishtina, Kosovo',

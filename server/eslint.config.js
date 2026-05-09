@@ -47,4 +47,20 @@ module.exports = [
       'eqeqeq': ['error', 'smart'],
     },
   },
+  {
+    files: ['**/shared/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2021,
+      globals: { ...globals.node },
+      sourceType: 'module',
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-console': 'off',
+      'prefer-const': 'error',
+      'no-var': 'error',
+      'eqeqeq': ['error', 'smart'],
+    },
+  },
 ];

@@ -73,9 +73,11 @@ async function updateProfile(id, { firstName, lastName, phone, location, avatar 
 }
 
 async function setPasswordReset(id, token, expires) {
+  const crypto = require('crypto');
+  const hashed = crypto.createHash('sha256').update(token).digest('hex');
   await pool.query(
     'UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?',
-    [token, expires, id]
+    [hashed, expires, id]
   );
 }
 

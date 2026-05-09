@@ -4,12 +4,18 @@ import { api } from '../api/client';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { DetailPageSkeleton } from '../components/PageSkeletons';
 import { ProductCard } from '../components/ProductCard';
+import { ImageUploader } from '../components/ImageUploader';
+import { ImageGallery } from '../components/ImageGallery';
+import { Lightbox } from '../components/Lightbox';
+import { SellerBox } from '../components/SellerBox';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { useToast } from '../components/ui/Toast';
 import { useAuth } from '../hooks/useAuth';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { pageTitle } from '../siteMeta';
 import {
   CONDITION_LABEL,
-  categoryEmoji,
   displayCategory,
   normalizeListing,
   specsEntries,
@@ -59,8 +65,10 @@ export function ProductDetailPage() {
     images: [],
     specState: {},
   });
-  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploading] = useState(false);
   const [editImageEntries, setEditImageEntries] = useState([]);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -129,7 +137,7 @@ export function ProductDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useDocumentTitle(product ? pageTitle(product.title) : pageTitle('Listing'));
   const canManage =
@@ -139,13 +147,13 @@ export function ProductDetailPage() {
 
   useEffect(() => {
     if (searchParams.get('edit') === '1' && canManage) {
-      setEditOpen(true);
+      setEditOpen(true); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [searchParams, canManage]);
 
   useEffect(() => {
     if (!editOpen) return;
-    setForm((f) => ({
+    setForm((f) => ({ // eslint-disable-line react-hooks/set-state-in-effect
       ...f,
       specState: initSpecStateForCategory(f.category, f.specState),
     }));
@@ -225,48 +233,22 @@ export function ProductDetailPage() {
   }
 
   const seller = product.seller;
-  const sellerName = seller?.name || seller?.username || 'Seller';
-  const sellerInitials = sellerName
-    .split(/\s+/)
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
   const cond = CONDITION_LABEL[product.condition] || product.condition;
   const specRows = specsEntries(product.specs);
-
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const sellerInitials = (seller?.username || '?').slice(0, 2).toUpperCase();
+  const sellerName = seller?.email || `@${seller?.username || 'seller'}`;
 
   async function handleDeleteListing() {
     if (!canManage || deleting) return;
     setDeleting(true);
     try {
       await api.delete(`/listings/${product.id}`);
+      toast(t('listingDeleted'), 'success');
       navigate('/', { replace: true });
     } catch (e) {
       setError(e.response?.data?.message || e.message || t('error'));
     } finally {
       setDeleting(false);
-    }
-  }
-
-  async function handleEditImageFiles(e) {
-    const files = e.target.files ? [...e.target.files] : [];
-    e.target.value = '';
-    if (!files.length) return;
-    setImageUploading(true);
-    setError(null);
-    try {
-      const fd = new FormData();
-      files.slice(0, 8).forEach((f) => fd.append('images', f));
-      const { data } = await api.post('/listings/images', fd);
-      const urls = data.urls || [];
-      setForm((f) => ({ ...f, images: [...(f.images || []), ...urls] }));
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || t('error'));
-    } finally {
-      setImageUploading(false);
     }
   }
 
@@ -402,31 +384,12 @@ export function ProductDetailPage() {
       </Link>
 
       <div className="detail-grid">
-        <div className="detail-img">
-          {product.images && product.images.length > 0 ? (
-            <>
-              <div className="detail-img-main" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') { setLightboxIndex(0); setLightboxOpen(true); } }}>
-                <img src={product.images[0]} alt={product.title} decoding="async" />
-              </div>
-              {product.images.length > 1 && (
-                <div className="detail-img-thumbnails">
-                  {product.images.slice(1, 5).map((img, i) => (
-                    <div key={i} className="detail-img-thumb" onClick={() => { setLightboxIndex(i + 1); setLightboxOpen(true); }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') { setLightboxIndex(i + 1); setLightboxOpen(true); } }} aria-label={`View image ${i + 2} of ${product.images.length}`}>
-                      <img src={img} alt={`Image ${i + 2}: ${product.title}`} />
-                    </div>
-                  ))}
-                  {product.images.length > 5 && (
-                    <div className="detail-img-more" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') { setLightboxIndex(0); setLightboxOpen(true); } }} aria-label={`View all ${product.images.length} images`}>
-                      +{product.images.length - 5} more
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="img-placeholder">{categoryEmoji(product.category)}</div>
-          )}
-        </div>
+        <ImageGallery
+          images={product.images}
+          title={product.title}
+          category={product.category}
+          onOpenLightbox={(i) => { setLightboxIndex(i); setLightboxOpen(true); }}
+        />
 
         <div className="detail-info">
           <span className="card-category">
@@ -444,23 +407,20 @@ export function ProductDetailPage() {
               <button type="button" className="btn" onClick={() => setEditOpen((v) => !v)}>
                 {editOpen ? t('closeEdit') : t('editListingBtn')}
               </button>
-              {!confirmDeleteOpen ? (
-                <button type="button" className="btn btn-danger" onClick={() => setConfirmDeleteOpen(true)} disabled={deleting}>
-                  {deleting ? t('deleting') : t('deleteListingBtn')}
-                </button>
-              ) : (
-                <div className="delete-confirm" role="alertdialog" aria-modal="true" aria-label={t('deleteListingBtn')}>
-                  <p>{t('deleteConfirm')}</p>
-                  <div className="form-actions">
-                    <button type="button" className="btn btn-danger" onClick={handleDeleteListing} disabled={deleting}>
-                      {deleting ? t('deleting') : t('yesDelete')}
-                    </button>
-                    <button type="button" className="btn" onClick={() => setConfirmDeleteOpen(false)} disabled={deleting}>
-                      {t('cancel')}
-                    </button>
-                  </div>
+              <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)} disabled={deleting}>
+                {deleting ? t('deleting') : t('deleteListingBtn')}
+              </Button>
+              <Modal open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)} ariaLabel={t('deleteListingBtn')}>
+                <p>{t('deleteConfirm')}</p>
+                <div className="form-actions" style={{ marginTop: '1rem' }}>
+                  <Button variant="danger" onClick={handleDeleteListing} loading={deleting}>
+                    {t('yesDelete')}
+                  </Button>
+                  <Button onClick={() => setConfirmDeleteOpen(false)} disabled={deleting}>
+                    {t('cancel')}
+                  </Button>
                 </div>
-              )}
+              </Modal>
             </div>
           )}
 

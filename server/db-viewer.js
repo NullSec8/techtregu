@@ -1,6 +1,4 @@
 const express = require('express');
-const mysql = require('mysql2/promise');
-const path = require('path');
 
 function createDbViewer(dbPool) {
   const router = express.Router();
@@ -12,7 +10,7 @@ function createDbViewer(dbPool) {
       const tableKey = Object.keys(tables[0])[0];
       const tableNames = tables.map(t => t[tableKey]);
       
-      let html = `
+      const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -70,7 +68,7 @@ function createDbViewer(dbPool) {
       const [rows] = await dbPool.query(`SELECT * FROM \`${tableName}\` LIMIT 100`);
       const [columns] = await dbPool.query(`DESCRIBE \`${tableName}\``);
       
-      let html = `
+      const html = `
       <!DOCTYPE html>
       <html>
       <head>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { CATEGORY_LABEL } from '../utils/listingUtils';
@@ -64,7 +64,7 @@ export function NewListingPage() {
   }, []);
 
   useEffect(() => {
-    setSpecs((prev) => initSpecStateForCategory(form.category, prev));
+    setSpecs((prev) => initSpecStateForCategory(form.category, prev)); // eslint-disable-line react-hooks/set-state-in-effect
   }, [form.category]);
 
   function setField(key) {
@@ -300,7 +300,7 @@ export function NewListingPage() {
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary" disabled={submitting || uploading}>
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
               {submitting ? t('publishing') : t('publishListing')}
             </button>
             <Link to="/" className="btn">

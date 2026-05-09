@@ -147,13 +147,14 @@ const STATEMENTS = [
 ];
 
 async function initSchema(pool = require('./pool').pool) {
+  const { log } = require('../logger');
   const IGNORED_ERRORS = ['Duplicate key name', 'Table already exists', 'Duplicate column name', 'Duplicate key'];
   for (const sql of STATEMENTS) {
     try {
       await pool.query(sql);
     } catch (err) {
       if (!IGNORED_ERRORS.some((msg) => err.message.includes(msg))) {
-        console.error('Schema init error:', err.message);
+        log('error', 'schema_init_error', { error: err.message });
       }
     }
   }

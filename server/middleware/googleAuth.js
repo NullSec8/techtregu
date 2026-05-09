@@ -11,7 +11,7 @@ function setupGoogleAuth(app, pool) {
   const jwtSecret = process.env.JWT_SECRET;
 
   if (!googleClientID || !googleClientSecret) {
-    console.log('[GoogleAuth] Not configured - set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env');
+    log('warn', 'google_auth_not_configured');
     return;
   }
 
@@ -20,8 +20,13 @@ function setupGoogleAuth(app, pool) {
     process.exit(1);
   }
 
+  const sessionSecret = process.env.SESSION_SECRET || 'techtregu_dev_session_fallback';
+  if (!process.env.SESSION_SECRET) {
+    log('warn', 'session_secret_fallback', { hint: 'Set SESSION_SECRET in .env for better security' });
+  }
+
   app.use(session({
-    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET + '_fallback',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 60000 },

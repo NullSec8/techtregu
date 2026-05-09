@@ -41,7 +41,6 @@ function validateField(name, value) {
 
 function FieldFeedback({ field, value, touched }) {
   const { t } = useI18n();
-  const [hovered, setHovered] = useState(false);
   const errorKey = validateField(field, value);
   const hasFeedback = field === 'email' || field === 'password';
 
@@ -49,9 +48,7 @@ function FieldFeedback({ field, value, touched }) {
   if (errorKey) return <span className="field-error">{t(errorKey)}</span>;
   if (!hasFeedback) return null;
 
-  const validLabel = field === 'password' ? 'passwordValid' : 'emailValid';
-  if (!hovered) return null;
-  return <span className="field-success">{t(validLabel)}</span>;
+  return null;
 }
 
 function FormField({ label, error, children, className = '' }) {

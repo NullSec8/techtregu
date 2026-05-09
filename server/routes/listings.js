@@ -10,6 +10,7 @@ const { optimizeImage, generateThumbnails } = require('../middleware/imageOptimi
 const { plainText, sanitizeSpecs } = require('../utils/sanitize');
 const { analyzeContent } = require('../../shared/contentModeration');
 const { asyncHandler, AppError } = require('../utils/asyncHandler');
+const { log } = require('../logger');
 
 const router = express.Router();
 /**
@@ -495,12 +496,12 @@ router.post(
             fs.unlinkSync(file.path);
             const thumbPath = await generateThumbnails(optPath);
             if (thumbPath) {
-              console.log(`[ImageOptim] Thumbnail created: ${thumbPath}`);
+              log('info', 'thumbnail_created', { path: thumbPath });
             }
             file.filename = `${baseName}_opt.${ext}`;
           }
         } catch (optErr) {
-          console.error('[ImageOptim] Skip optimization:', optErr.message);
+          log('error', 'image_optim_skip', { error: optErr.message });
         }
       }
       const urls = files.map((f) => `/uploads/${f.filename}`);
@@ -611,7 +612,19 @@ router.post(
   })
 );
 
-router.put('/:id', auth, asyncHandler(async (req, res) => {
+router.put('/:id', auth, [
+  body('title').optional().isLength({ min: 3 }).trim().escape(),
+  body('description').optional().isLength({ min: 10 }).trim(),
+  body('price').optional().isFloat({ min: 0.01, max: 999999 }),
+  body('category').optional().isIn(['laptop', 'desktop', 'gpu', 'cpu', 'ram', 'storage', 'monitor', 'peripheral', 'other']),
+  body('condition').optional().isIn(['new', 'used', 'refurbished']),
+  body('location').optional().isLength({ min: 2, max: 64 }),
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const id = parseInt(req.params.id, 10);
   if (Number.isNaN(id)) {
     return res.status(404).json({ message: 'Listing not found' });

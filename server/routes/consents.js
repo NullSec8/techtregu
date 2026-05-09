@@ -1,7 +1,7 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const { getUserConsents, setConsent } = require('../database/auditRepository');
-const { asyncHandler, AppError } = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 const router = express.Router();
 

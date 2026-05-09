@@ -20,7 +20,7 @@ export const LOCATIONS = [
   { code: 'pec', name: 'Pacaj', nameEn: 'Pacan' },
   { code: 'shk', name: 'Shkup', nameEn: 'Skopje (MK)' },
   { code: 'tir', name: 'Tiranë', nameEn: 'Tirana (AL)' },
-  { code: 'prist', name: 'Prishtinë', nameEn: 'Pristina' },
+  { code: 'pris', name: 'Prishtinë', nameEn: 'Pristina' },
   { code: 't', name: 'Trepçë', nameEn: 'Trepča' },
   { code: 'zm', name: 'Zveçan', nameEn: 'Zvečan' },
   { code: 'z', name: 'Zubin Potok', nameEn: 'Zubin Potok' },

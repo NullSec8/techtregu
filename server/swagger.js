@@ -14,6 +14,10 @@ const options = {
         url: 'http://localhost:5000',
         description: 'Development server',
       },
+      {
+        url: 'https://yourdomain.com',
+        description: 'Production server',
+      },
     ],
     components: {
       securitySchemes: {

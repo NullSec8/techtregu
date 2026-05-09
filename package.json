@@ -21,7 +21,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vitest/coverage-v8": "^4.1.5",
-    "concurrently": "^8.2.2",
+    "concurrently": "^9.2.1",
     "eslint": "^10.3.0",
     "globals": "^17.6.0",
     "husky": "^9.1.7",
@@ -33,7 +33,7 @@
     "tech",
     "react",
     "nodejs",
-    "mongodb"
+    "mysql"
   ],
   "author": "",
   "license": "ISC"

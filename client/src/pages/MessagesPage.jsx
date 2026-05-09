@@ -102,7 +102,7 @@ export function MessagesPage() {
   const [typingUsers, setTypingUsers] = useState(new Map());
   const [convSearch, setConvSearch] = useState('');
   const otherIdRef = useRef(otherId);
-  otherIdRef.current = otherId;
+  useEffect(() => { otherIdRef.current = otherId; }, [otherId]);
 
   async function loadThreads() {
     try {
@@ -159,11 +159,11 @@ export function MessagesPage() {
   }
 
   useEffect(() => {
-    loadThreads();
+    loadThreads(); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
 
   useEffect(() => {
-    if (otherId) loadConversation(otherId);
+    if (otherId) loadConversation(otherId); // eslint-disable-line react-hooks/set-state-in-effect
   }, [otherId]);
 
   useEffect(() => {

@@ -47,7 +47,7 @@ export function AdminPage() {
   }
 
   useEffect(() => {
-    load();
+    load(); // eslint-disable-line react-hooks/set-state-in-effect
   }, [page]);
 
   async function toggleActive(item) {
@@ -99,7 +99,7 @@ export function AdminPage() {
 
   // Reset page when filters change
   useEffect(() => {
-    setPage(1);
+    setPage(1); // eslint-disable-line react-hooks/set-state-in-effect
   }, [statusFilter, searchQuery]);
 
   if (!user?.isAdmin) {

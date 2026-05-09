@@ -33,11 +33,15 @@ const SCAM_KEYWORDS = [
 
 
 
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function analyzeContent(title, description) {
-  const text = `${title} ${description}`.toLowerCase();
+  const text = `${title} ${description}`;
   
-  const techScore = TECH_KEYWORDS.filter(k => text.includes(k.toLowerCase())).length;
-  const scamScore = SCAM_KEYWORDS.filter(k => text.includes(k.toLowerCase())).length;
+  const techScore = TECH_KEYWORDS.filter(k => new RegExp(`\\b${escapeRegex(k)}\\b`, 'i').test(text)).length;
+  const scamScore = SCAM_KEYWORDS.filter(k => new RegExp(`\\b${escapeRegex(k)}\\b`, 'i').test(text)).length;
   
   const result = {
     isTech: techScore >= 1,

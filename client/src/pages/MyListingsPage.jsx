@@ -30,7 +30,7 @@ export function MyListingsPage() {
   }
 
   useEffect(() => {
-    load();
+    load(); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
 
   async function toggleActive(item) {

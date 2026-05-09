@@ -203,11 +203,14 @@ export function ImageUploader({ value = [], onChange, maxFiles = 8, token }) {
 
   /* ── drag & drop ────────────────────────────────────────────────── */
 
+  const addFilesRef = useRef(addFiles);
+  addFilesRef.current = addFiles;
+
   const onDrop = useCallback((e) => {
     e.preventDefault();
     setDragOver(false);
-    addFiles(e.dataTransfer.files);
-  }, [addFiles]);
+    addFilesRef.current(e.dataTransfer.files);
+  }, []);
 
   const onDragOver = useCallback((e) => {
     e.preventDefault();

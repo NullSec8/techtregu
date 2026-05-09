@@ -6,7 +6,7 @@ const { body, validationResult } = require('express-validator');
 const userRepository = require('../database/userRepository');
 const auth = require('../middleware/auth');
 const { sendMail, buildPasswordResetEmail } = require('../utils/emailService');
-const { asyncHandler, AppError } = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 const router = express.Router();
 

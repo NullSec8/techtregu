@@ -1,4 +1,5 @@
 const { pool } = require('./pool');
+const { log } = require('../logger');
 
 async function logAudit(userId, action, resource, meta, req) {
   try {
@@ -7,7 +8,7 @@ async function logAudit(userId, action, resource, meta, req) {
       [userId, action, resource, meta ? JSON.stringify(meta) : null, req?.ip || req?.connection?.remoteAddress, req?.get('User-Agent') || req?.headers?.['user-agent']]
     );
   } catch (err) {
-    console.error('[Audit] Failed to log:', err.message);
+    log('error', 'audit_log_failed', { error: err.message });
   }
 }
 
